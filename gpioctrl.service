@@ -1,0 +1,12 @@
+[Unit]
+Description=Realtime GPIO Controller for RockPiS
+
+[Service]
+User=root
+Restart=always
+KillSignal=SIGQUIT
+WorkingDirectory=/root/gpio-controller/
+ExecStart=node /root/gpio-controller/index.js
+
+[Install]
+WantedBy=multi-user.target
