@@ -2,6 +2,12 @@
 
 'use strict';
 
+/**
+* Board Type Selection Variable
+* Its value can only be "nanopi", "rockpis" or "orangepizero"
+**/
+const boardType = 'rockpis';
+
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -12,10 +18,14 @@ const serverPort = 80;
 const io = require('socket.io')(server);
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
-const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
 const validationToken = fs.readFileSync('./security.txt').toString().replace('\n', '');
 const httpAuthentication = {"username": "admin", "password": "password"};
 const systemFolder = path.join(__dirname, 'sys');
+const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
+//const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18']; // For NanoPiNEO-LTS
+//const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
+
+
 var ioData;
 var sessions = [];
 var inputs = [];
@@ -158,7 +168,7 @@ app.get('/remove/:pin', (req, res) => {
 app.get('/set/:pin/:state', (req, res) => {
 	let pin = req.params.pin.toString();
 	let state = req.params.state.toString();
-	if(availablePins.includes(pin) && ioData.controllable_pins[pin] != '0' && (state == 'on' || state == 'off')) {
+	if(availablePins.includes(pin) && !(Object.values(ioData.links).includes(pin)) && ioData.controllable_pins[pin] != '0' && (state == 'on' || state == 'off')) {
 		let stateNum = state == 'on' ? '1' : '0';
 		changeState(pin, stateNum, success => {
 			if(success != true) {
