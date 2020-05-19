@@ -1,0 +1,197 @@
+@import url('all.min.css');
+
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+* {box-sizing: border-box}
+body {
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	font-family: 'Arial', sans-serif;
+}
+.module {
+	display: flex;
+	flex-direction: column;
+	width: auto;
+	justify-content: center;
+	align-items: center;
+	margin: 10px;
+}
+.module[role="main"] > .module-head {
+	background: #37474f;
+	color: #FFF;
+	border: 1px solid #37474F;
+}
+.addNewBoard {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	padding: 10px;
+	margin: 10px;
+	background-color: #607D8B;
+	color: #FFF;
+	border-radius: 4px;
+	text-decoration: none;
+}
+.module-head {
+	background: #ECEFF1;
+	border: 1px solid #eee;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	padding: 10px;
+	width: 100%;
+	border-radius: 5px 5px 0 0;
+}
+.io-module {
+	width: auto;
+	flex-basis: 100%;
+	flex-grow: 1;
+}
+.module-body {
+	width: 100%;
+	padding: 5px;
+	background-color: #FFF;
+	color: #222;
+	border-radius: 0 0 5px 5px;
+	border: 1px solid #eee;
+	border-top: 0;
+}
+.module-buttons {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	background-color: #F4F4F4;
+	justify-content: center;
+	align-items: center;
+	border: 1px solid #eee;
+	border-top: 3px solid #00BCD4;;
+}
+.module-buttons a:hover {
+	background-color: #00BCD4!important;
+}
+.module-buttons a {
+	text-decoration: none;
+	color: #FFF; 
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 30px;
+	height: 30px;
+	margin: 0 3px;
+	transition: 250ms all;
+}
+.module-buttons a.module-remove-btn {
+	background-color: #f44336;
+}
+.module-buttons a.new-pin-btn {
+	background-color: #004D40;
+}
+.module-buttons a.rename-board-btn {
+	background-color: #3D5AFE;
+}
+.module-buttons a.link-input-btn {
+	background-color: #f44336;
+}
+.module-buttons a.unlink-pin-btn {
+	background-color: #303F9F;
+}
+.module-buttons a.set-bistable-btn, .module-buttons a.set-monostable-btn {width: auto; color: white; background-color: #333; padding: 0 5px;}
+ul.ios {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+span.inactiveBoard {
+	font-weight: bold;
+	color: red;
+}
+ul.ios li a:focus {
+	outline: none;
+}
+ul.ios li {
+	display: flex;
+	flex-direction: row;
+	background-color: gray;
+	border-radius: 5px;
+	margin: 5px;
+}
+ul.ios li[data-gpio-state="1"] {
+	background-color: green;
+}
+ul.ios li[data-gpio-state="0"] {
+	background-color: red;
+}
+a.io-edit, a.io-remove, a.io-control {
+	line-height: 28px;
+	display: flex;
+	background-color: inherit;
+	color: #FFF;
+	font-size: 14px;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	text-decoration: none;
+	padding: 0 3px;
+}
+a.io-edit, a.io-remove {
+	width: 30px;
+}
+a.io-edit {
+	border-right: 1px solid #F4F4F4;
+	border-radius: 5px 0 0 5px;
+}
+a.io-remove {
+	border-left: 1px solid #F4F4F4;
+	border-radius: 0 5px 5px 0;
+}
