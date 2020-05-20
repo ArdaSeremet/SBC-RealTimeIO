@@ -22,7 +22,7 @@ const validationToken = fs.readFileSync('./security.txt').toString().replace('\n
 const httpAuthentication = {"username": "admin", "password": "password"};
 const systemFolder = path.join(__dirname, 'sys');
 //const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
-const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18']; // For NanoPiNEO-LTS
+const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
 //const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 
 
