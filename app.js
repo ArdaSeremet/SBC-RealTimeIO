@@ -21,8 +21,8 @@ const { exec, execSync } = require('child_process');
 const validationToken = fs.readFileSync('./security.txt').toString().replace('\n', '');
 const httpAuthentication = {"username": "admin", "password": "password"};
 const systemFolder = path.join(__dirname, 'sys');
-const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
-//const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18']; // For NanoPiNEO-LTS
+//const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
+const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18']; // For NanoPiNEO-LTS
 //const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 
 
@@ -251,7 +251,7 @@ function addPin(pin, mode, timeout, callback) {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
 		let name = (mode == '0') ? 'Input ' + pin : 'Relay ' + pin;
-		exec('bash ' + path.join(systemFolder, modeStr + '.sh') + ' ' + pin + ' && bash ' + path.join(systemFolder, 'read.sh') + ' ' + pin, (err, stdout, stderr) => {
+		exec('gpio mode ' + pin + ' ' + modeStr + ' && gpio read ' + pin, (err, stdout, stderr) => {
 			if(err) {
 				console.error('GPIO Pin Adding Operation Error: ' + err);
 				callback(false);
@@ -306,8 +306,8 @@ function changeState(pin, state, callback) {
 		}
 	}*/
 	if((state == '1' || state == '0') && ioData.controllable_pins[pin] != '0') {
-		let stateFilePath = path.join(systemFolder, (state == '1' ? 'on.sh' : 'off.sh'));
-		exec('bash ' + stateFilePath + ' ' + pin, (err, stdout, stderr) => {
+		let stateStr = (state == '1' ? 'on' : 'off');
+		exec('gpio write ' + pin + ' ' + stateStr, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -339,7 +339,7 @@ function changeState(pin, state, callback) {
 function readState(pin, callback) {
 	if(pin in ioData.controllable_pins) {
 		let readFilePath = path.join(systemFolder, 'read.sh');
-		exec('bash ' + readFilePath + ' ' + pin, (err, stdout, stderr) => {
+		exec('gpio read ' + pin, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;

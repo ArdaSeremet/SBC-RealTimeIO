@@ -20,13 +20,13 @@ function handleNewBoard(ipAddress) {
 				<h1><span>${data.boardName}</span></h1>
 			</div>
 			<div class="module-buttons">
-				<a href="javascript:;" class="board-action new-pin-btn" onclick="addIO('${socket.id}')"><i class="fas fa-plus-square"></i></a>
-				<a href="javascript:;" class="board-action rename-board-btn" onclick="renameBoard('${socket.id}')"><i class="far fa-edit"></i></a>
-				<a href="javascript:;" id="linkToInput" class="board-action link-input-btn" onclick="linkToInput('${socket.id}')"><i class="fas fa-link"></i></a>
-				<a href="javascript:;" id="unlinkPin" class="unlink-pin-btn" onclick="unlinkPin('${socket.id}')"><i class="fas fa-unlink"></i></a>
-				<a href="javascript:;" id="removeBoard" class="module-remove-btn" onclick="removeBoard('${socket.id}')"><i class="fas fa-minus-circle"></i></a>
-				<a href="javascript:;" id="setBistable" class="set-bistable-btn" onclick="setBistable('${socket.id}')">Bi</a>
-				<a href="javascript:;" id="setMonostable" class="set-monostable-btn" onclick="setMonostable('${socket.id}')">Mono</a>
+				<a href="javascript:;" title="Add a New GPIO Pin" class="board-action new-pin-btn" onclick="addIO('${socket.id}')"><i class="fas fa-plus-square"></i></a>
+				<a href="javascript:;" title="Rename The Board" class="board-action rename-board-btn" onclick="renameBoard('${socket.id}')"><i class="far fa-edit"></i></a>
+				<a href="javascript:;" title="Link an Input To A Relay" id="linkToInput" class="board-action link-input-btn" onclick="linkToInput('${socket.id}')"><i class="fas fa-link"></i></a>
+				<a href="javascript:;" title="Unlink a Pin" id="unlinkPin" class="unlink-pin-btn" onclick="unlinkPin('${socket.id}')"><i class="fas fa-unlink"></i></a>
+				<a href="javascript:;" title="Remove The Board" id="removeBoard" class="module-remove-btn" onclick="removeBoard('${socket.id}')"><i class="fas fa-minus-circle"></i></a>
+				<a href="javascript:;" title="Set a Relay as Bistable" id="setBistable" class="set-bistable-btn" onclick="setBistable('${socket.id}')">Bi</a>
+				<a href="javascript:;" title="Set a Relay as Monostable" id="setMonostable" class="set-monostable-btn" onclick="setMonostable('${socket.id}')">Mono</a>
 			</div>
 			<div class="module-body">
 				<div class="module io-module">

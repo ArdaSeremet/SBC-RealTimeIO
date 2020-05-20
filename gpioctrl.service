@@ -6,7 +6,7 @@ User=root
 Restart=always
 KillSignal=SIGQUIT
 WorkingDirectory=/root/gpio-controller/
-ExecStart=node /root/gpio-controller/app.js
+ExecStart=/root/gpio-controller/app.js
 
 [Install]
 WantedBy=multi-user.target
