@@ -25,6 +25,8 @@ function handleNewBoard(ipAddress) {
 				<a href="javascript:;" title="Link an Input To A Relay" id="linkToInput" class="board-action link-input-btn" onclick="linkToInput('${socket.id}')"><i class="fas fa-link"></i></a>
 				<a href="javascript:;" title="Unlink a Pin" id="unlinkPin" class="unlink-pin-btn" onclick="unlinkPin('${socket.id}')"><i class="fas fa-unlink"></i></a>
 				<a href="javascript:;" title="Remove The Board" id="removeBoard" class="module-remove-btn" onclick="removeBoard('${socket.id}')"><i class="fas fa-minus-circle"></i></a>
+				<a href="${ipAddress.length >= 7 ? 'http://' + ipAddress : ''}/settings" title="GPIO Configuration" id="gpioConfigurationBtn" class="gpio-conf-btn"><i class="fas fa-cog"></i></a>
+				<a href="${ipAddress.length >= 7 ? 'http://' + ipAddress : ''}/static-ip" title="Configure IP Address" id="ipConfigurationBtn" class="ip-conf-btn">IP</a>
 				<a href="javascript:;" title="Set a Relay as Bistable" id="setBistable" class="set-bistable-btn" onclick="setBistable('${socket.id}')">Bi</a>
 				<a href="javascript:;" title="Set a Relay as Monostable" id="setMonostable" class="set-monostable-btn" onclick="setMonostable('${socket.id}')">Mono</a>
 			</div>

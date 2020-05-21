@@ -52,6 +52,10 @@ app.get('/getconf', (req, res) => {
 	res.end(fs.readFileSync('./conf.json'));
 });
 
+app.get('/settings', (req, res) => {
+	res.sendFile(path.join(__dirname, 'static/settings.html'));
+});
+
 app.get('/reboot', (req, res) => {
         if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
                 res.statusCode = 401;

@@ -145,7 +145,10 @@ body {
 .module-buttons a.unlink-pin-btn {
 	background-color: #303F9F;
 }
-.module-buttons a.set-bistable-btn, .module-buttons a.set-monostable-btn {width: auto; color: white; background-color: #333; padding: 0 5px;}
+.module-buttons a.gpio-conf-btn {
+	background-color: #3D5AFE;
+}
+.module-buttons a.set-bistable-btn, .module-buttons a.set-monostable-btn, .module-buttons a.ip-conf-btn {width: auto; color: white; background-color: #333; padding: 0 5px;}
 ul.ios {
 	display: flex;
 	flex-direction: row;
@@ -194,4 +197,50 @@ a.io-edit {
 a.io-remove {
 	border-left: 1px solid #F4F4F4;
 	border-radius: 0 5px 5px 0;
+}
+
+
+h1.settings-header {
+	margin: 5px;
+	font-size: 22px;
+	padding: 5px;
+	background-color: #222;
+	border-radius: 5px;
+	border: 1px solid #222;
+	color: #FFF;
+}
+.pin {
+	display: flex;
+	flex-direction: row;
+	padding: 5px;
+	border-radius: 5px;
+	border: 1px solid #eee;
+	color: #222;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 5px;
+}
+.pin select, .pin input{
+	background-color: #FFF;
+	border: 1px solid #ddd;
+	padding: 5px;
+	margin-left: 5px;
+	color: #222;
+	border-radius: 5px;
+}
+.pin input {
+	width: 90px;
+}
+
+@media all and (max-width: 400px) {
+	.pin {
+		flex-direction: column;
+	}
+	.pin select, .pin input {
+		width: 100%;
+		flex-grow: 1;
+		flex-basis: 100%;
+		margin-left: 0;
+		margin-top: 5px;
+	}
 }
