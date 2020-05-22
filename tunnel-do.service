@@ -1,0 +1,11 @@
+[Unit]
+Description=AutoSSH tunnel service for reverse tunneling
+After=network-online.target
+
+[Service]
+User=fa
+Environment="AUTOSSH_GATETIME=0"
+ExecStart=/usr/bin/autossh -M 0 -N -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -R 8082:localhost:80 root@64.227.122.63 -p 22
+
+[Install]
+WantedBy=multi-user.target
