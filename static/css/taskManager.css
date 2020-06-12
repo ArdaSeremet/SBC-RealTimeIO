@@ -1,0 +1,93 @@
+ul.ios {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+span.inactiveBoard {
+	font-weight: bold;
+	color: red;
+}
+ul.ios li a:focus {
+	outline: none;
+}
+ul.ios li {
+	display: flex;
+	flex-direction: row;
+	background-color: gray;
+	border-radius: 5px;
+	margin: 5px;
+}
+ul.ios li[data-gpio-state="1"] {
+	background-color: green;
+}
+ul.ios li[data-gpio-state="0"] {
+	background-color: red;
+}
+a.io-edit, a.io-remove, a.io-control {
+	line-height: 28px;
+	display: flex;
+	background-color: inherit;
+	color: #FFF;
+	font-size: 14px;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	text-decoration: none;
+	padding: 0 3px;
+}
+
+.pin {
+	display: flex;
+	flex-direction: row;
+	padding: 5px;
+	border-radius: 5px;
+	border: 1px solid #eee;
+	color: #222;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 5px;
+}
+.pin select, .pin input{
+	background-color: #FFF;
+	border: 1px solid #ddd;
+	padding: 5px;
+	margin-left: 5px;
+	color: #222;
+	border-radius: 5px;
+}
+.pin input {
+	width: 90px;
+}
+
+.table-wrapper {
+	overflow-x: auto;
+}
+
+table.tasks {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+table.tasks td, table.tasks th {
+	padding: 5px 10px;
+	border: 1px solid #EBEBEB;
+	border-collapse: collapse;
+	text-align: center;
+}
+form {
+border: 1px solid #EBEBEB; border-radius: 5px;
+display: flex;flex-direction: column;padding: 10px;justify-content: center; align-items: center;
+}
+.form-control { display: flex;flex-direction: column;border-radius: 5px; margin: 10px; border: 1px solid #EBEBEB; width: 100%;justify-content: center; padding: 10px; }
+input, select { background-color: #FFF; margin: 5px; width: 100%; padding: 10px;border-radius: 5px;border: 1px solid #EBEBEB; }
+button { cursor: pointer;  display: flex; justify-content: center; align-items: center; text-align: center; border: 1px solid lightblue; padding: 10px; border-radius: 5px; background-color: lightblue; color: #FFF; }
+
+table.tasks tr:nth-child(even) {
+	background-color: #eee;
+}
+table.tasks thead {
+	border-bottom: 2px solid #EBEBEB;
+	background-color: green;
+	color: #FFF;
+}

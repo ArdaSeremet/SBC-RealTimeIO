@@ -1,0 +1,35 @@
+ul.ios li {
+	display: flex;
+	flex-direction: column;
+	padding: 5px;
+	padding-bottom: 0;
+	justify-content: center;
+	align-items: center;
+	margin: 5px;
+	border: 1px solid #EBEBEB;
+	border-radius: 5px;
+	background-color: #F4F4F4;
+}
+
+ul.ios li span {
+	text-align: center;
+	color: #37474F;
+	margin: 5px 0;
+}
+ul.ios li select, ul.ios li input {
+	width: 250px;
+	height: 30px;
+	display: flex;
+	background-color: #FFF;
+	border: 2px solid #ebebeb;
+	border-radius: 5px;
+	align-items: center;
+	padding-left: 5px;
+	margin-bottom: 5px;
+}
+input:focus, select:focus {
+	outline: none;
+}
+ul.ios.inputs li {
+	grid-template-columns: 1fr 1fr;
+}

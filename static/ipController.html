@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+	<title>IP Controller</title>
+	<link rel="stylesheet" href="css/main.css">
+	<script src="js/jquery.min.js"></script>
+	<script src="js/main.js"></script>
+	<link rel="stylesheet" href="css/ipController.css">
+</head>
+<body>
+	<header role="main">
+		<div class="navbar">
+		<ul class="menu">
+			<li><a href="index.html">Home</a></li>
+			<li><a href="taskManager.html">Task Manager</a></li>
+			<li><a href="ioController.html">I/O Controller</a></li>
+			<li><a href="modeManager.html">Mode & Link Manager</a></li>
+			<li><a href="ipController.html">IP Configuration</a></li>
+			<li><a href="ipController.html">Reboot</a></li>
+		</ul>
+		<div class="menu-toggler">
+			<i class="fas fa-bars"></i>
+		</div>
+		</div>
+	</header>
+	<main id="page-content">
+		<a href="#" onclick="handleNewBoard();" class="addNewBoard">Add a New Board</a>
+		<a href="#" onclick="handleAutomaticAddition();" class="addNewBoard">Configure Automatic Addition</a>
+	</main>
+	<footer role="main">
+		<span>This website is a property of <a href="http://progettihwsw.com">ProgettiHwSw SaS</a>. All rights reserved. Developed by <a href="https://www.ardaseremet.com.tr">Arda Seremet</a>.</span>
+	</footer>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="js/ipController.js"></script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+@import 'reset.min.css';
+@import 'all.min.css';
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Arial", sans-serif;
+}
+footer[role="main"] {
+  margin-top: 20px;
+  background-color: #F4F4F4;
+  border-top: 2px solid #EBEBEB;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #37374F;
+  padding: 10px;
+  text-align: center
+}
+footer[role="main"] a {
+  text-decoration: none;
+  color: #37474F;
+}
+.navbar {
+  padding: 0 50px;
+  background-color: #37474F;
+  box-shadow: 0 10px 6px -6px #777;
+}
+.navbar ul {
+  display: flex;
+  flex-direction: row;
+}
+header[role=main] {
+  display: flex;
+  flex-direction: column;
+}
+.navbar ul li a {
+  display: block;
+  text-decoration: none;
+  color: rgba(255,255,255,.8);
+  padding: 10px;
+  transition: 150ms all;
+}
+.navbar ul li a:hover,
+.navbar ul li a.active {
+  background-color: #f44336;
+}
+
+main {
+  padding: 20px 0;
+}
+
+
+
+.menu-toggler {
+  display: none;
+}
+.navbar {
+  display: flex;
+  flex-direction: row;
+}
+.formAlert {
+  background-color: lightgreen;
+  border: 1px solid green;
+  padding: 10px;
+  display: flex;
+  border-radius: 5px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 5px;
+}
+/*IO Controller CSS*/
+
+.module {
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+}
+.module[role="main"] > .module-head {
+  background: #37474f;
+  color: #FFF;
+  border: 1px solid #37474F;
+}
+.addNewBoard {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: 10px;
+  background-color: #607D8B;
+  color: #FFF;
+  border-radius: 4px;
+  text-decoration: none;
+}
+.module-head {
+  background: #ECEFF1;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  padding: 10px;
+  width: 100%;
+  border-radius: 5px 5px 0 0;
+}
+.io-module {
+  width: auto;
+  flex-basis: 100%;
+  flex-grow: 1;
+}
+.module-body {
+  width: 100%;
+  padding: 5px;
+  background-color: #FFF;
+  color: #222;
+  border-radius: 0 0 5px 5px;
+  border: 1px solid #eee;
+  border-top: 0;
+}
+.module-buttons {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  background-color: #F4F4F4;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #eee;
+  border-top: 3px solid #00BCD4;;
+}
+.module-buttons a:hover {
+  background-color: #00BCD4!important;
+}
+.module-buttons a {
+  text-decoration: none;
+  color: #FFF; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 3px;
+  transition: 250ms all;
+}
+.module-buttons a.module-remove-btn {
+  background-color: #f44336;
+}
+.module-buttons a.new-pin-btn {
+  background-color: #004D40;
+}
+.module-buttons a.rename-board-btn {
+  background-color: #3D5AFE;
+}
+.module-buttons a.link-input-btn {
+  background-color: #f44336;
+}
+.module-buttons a.unlink-pin-btn {
+  background-color: #303F9F;
+}
+.module-buttons a.gpio-conf-btn {
+  background-color: #3D5AFE;
+}
+.module-buttons a.set-bistable-btn, .module-buttons a.set-monostable-btn, .module-buttons a.ip-conf-btn {width: auto; color: white; background-color: #333; padding: 0 5px;}
+ul.ios {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+span.inactiveBoard {
+  font-weight: bold;
+  color: red;
+}
+ul.ios li a:focus {
+  outline: none;
+}
+ul.ios li {
+  display: flex;
+  flex-direction: row;
+  background-color: gray;
+  border-radius: 5px;
+  margin: 5px;
+}
+ul.ios li[data-gpio-state="1"] {
+  background-color: green;
+}
+ul.ios li[data-gpio-state="0"] {
+  background-color: red;
+}
+a.io-edit, a.io-remove, a.io-control {
+  line-height: 28px;
+  display: flex;
+  background-color: inherit;
+  color: #FFF;
+  font-size: 14px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  padding: 0 3px;
+}
+a.io-edit, a.io-remove {
+  width: 30px;
+}
+a.io-edit {
+  border-right: 1px solid #F4F4F4;
+  border-radius: 5px 0 0 5px;
+}
+a.io-remove {
+  border-left: 1px solid #F4F4F4;
+  border-radius: 0 5px 5px 0;
+}
+
+
+h1.settings-header {
+  margin: 5px;
+  font-size: 22px;
+  padding: 5px;
+  background-color: #222;
+  border-radius: 5px;
+  border: 1px solid #222;
+  color: #FFF;
+}
+.pin {
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #eee;
+  color: #222;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+.pin select, .pin input{
+  background-color: #FFF;
+  border: 1px solid #ddd;
+  padding: 5px;
+  margin-left: 5px;
+  color: #222;
+  border-radius: 5px;
+}
+.pin input {
+  width: 90px;
+}
+
+@media all and (max-width: 400px) {
+  .pin {
+    flex-direction: column;
+  }
+  .pin select, .pin input {
+    width: 100%;
+    flex-grow: 1;
+    flex-basis: 100%;
+    margin-left: 0;
+    margin-top: 5px;
+  }
+}
+
+/*IO Controller CSS END*/
+@media all and (max-width: 800px) {
+  .menu-toggler {
+    display: flex;
+  }
+  .navbar {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .navbar {display: flex;justify-content: flex-end;padding: 0 10px;}
+  .menu-toggler {display: flex;cursor:pointer;color: #fff;margin: 5px;padding: 5px;border: 1px solid #ebebeb;}
+  .navbar ul {display: none;}
+  ul.menu {
+    flex-direction: column;
+    width: 100%;
+    background-color: transparent;
+  }
+  .navbar {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    padding: 0;
+  }
+  ul.menu a:hover {background-color: #f44336;}
+
+  ul.menu a:hover {background-color: #f44336;}
+}
+/*# sourceMappingURL=main.css.map */

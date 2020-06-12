@@ -2,17 +2,12 @@
 
 'use strict';
 
-/**
-* Board Type Selection Variable
-* Its value can only be "nanopi", "rockpis" or "orangepizero"
-**/
-const boardType = 'rockpis';
-
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const app = module.exports.app = express();
 const os = require('os');
+const CronJob = require('cron').CronJob;
 const server = http.createServer(app);
 const serverPort = 80;
 const io = require('socket.io')(server);
@@ -21,18 +16,19 @@ const { exec, execSync } = require('child_process');
 const validationToken = fs.readFileSync('./security.txt').toString().replace('\n', '');
 const httpAuthentication = {"username": "admin", "password": "password"};
 const systemFolder = path.join(__dirname, 'sys');
-const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
-//const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18']; // For NanoPiNEO-LTS
-//const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
-
+//const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
+//const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
+const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
+const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
 var ioData;
 var sessions = [];
 var inputs = [];
 var outputs = [];
+var runningTasks = {};
 
 /* SOFTWARE PERM VALIDATION  */
-function control_mac() {
+/*function control_mac() {
 	if(os.networkInterfaces().eth0[0].mac.slice(os.networkInterfaces().eth0[0].mac.toString().length - 5).toString() != validationToken.toString()) {
 		console.error('This software is a property of Progettihwsw Sas  and can only be used on permitted machines! Aborting process...');
 		http.get('http://www.progetti-hw-sw.com/unpermitted_usage.php?mac=' + os.networkInterfaces().eth0[0].mac);
@@ -41,6 +37,13 @@ function control_mac() {
 }
 control_mac();
 setInterval(control_mac, 10000);
+*/
+
+app.use(function(req, res, next) {
+	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+	next();
+});
 
 app.use(express.static(path.join(__dirname, 'static')));
 
@@ -53,7 +56,7 @@ app.get('/getconf', (req, res) => {
 });
 
 app.get('/settings', (req, res) => {
-        res.sendFile(path.join(__dirname, 'static/settings.html'));
+	res.sendFile(path.join(__dirname, 'static/settings.html'));
 });
 
 app.get('/reboot', (req, res) => {
@@ -83,7 +86,7 @@ app.get('/static-ip', (req, res) => {
 
 app.get('/static-ip/get', (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/json' });
-        res.write('{ "ip-address": "' + os.networkInterfaces().eth0[0].address + '", "gateway-ip-address": "' +  execSync("ip r | grep eth0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '') + '" }');
+        res.write('{ "ip-address": "' + os.networkInterfaces().wlan0[0].address + '", "gateway-ip-address": "' +  execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '') + '", "dhcp": "'+ ((execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '')) == 'auto' ? 'true' : 'false') +'" }');
         res.end();
 });
 
@@ -101,7 +104,8 @@ app.get('/static-ip/set', (req, res) => {
                 res.write('Invalid Authentication Credentials!');
         }
         try {
-                execSync(`nmcli connection modify 'Wired connection 1' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.address ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
+                execSync(`nmcli connection modify 'Arda' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.addresses ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
+		console.log((req.query.dhcp == 'true') ? 'HE' : 'YOO');
                 res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
                 res.end();
         } catch(e) {
@@ -251,11 +255,11 @@ app.get('/status', (req, res) => {
 	res.end();
 });
 
-function addPin(pin, mode, timeout, callback) {
+const addPin = (pin, mode, timeout, callback) => {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
 		let name = (mode == '0') ? 'Input ' + pin : 'Relay ' + pin;
-		exec('bash ' + path.join(systemFolder, modeStr + '.sh') + ' ' + pin + ' && bash ' + path.join(systemFolder, 'read.sh') + ' ' + pin, (err, stdout, stderr) => {
+		exec('bash sys/' + modeStr + '.sh ' + pin + ' && bash sys/read.sh ' + pin, (err, stdout, stderr) => {
 			if(err) {
 				console.error('GPIO Pin Adding Operation Error: ' + err);
 				callback(false);
@@ -298,7 +302,7 @@ function addPin(pin, mode, timeout, callback) {
 	}
 }
 
-function changeState(pin, state, callback) {
+const changeState = (pin, state, callback) => {
 	/*if(Object.values(ioData.links).includes(pin)) {
 		ioData.controllable_pins[pin] = '1';
 		for(var i in ioData.links) {
@@ -310,8 +314,8 @@ function changeState(pin, state, callback) {
 		}
 	}*/
 	if((state == '1' || state == '0') && ioData.controllable_pins[pin] != '0') {
-		let stateFilePath = path.join(systemFolder, (state == '1' ? 'on.sh' : 'off.sh'));
-		exec('bash ' + stateFilePath + ' ' + pin, (err, stdout, stderr) => {
+		let stateStr = (state == '1' ? 'on' : 'off');
+		exec('bash sys/' + stateStr + '.sh ' + pin, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -340,7 +344,7 @@ function changeState(pin, state, callback) {
 	}
 }
 
-function readState(pin, callback) {
+const readState = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
 		let readFilePath = path.join(systemFolder, 'read.sh');
 		exec('bash ' + readFilePath + ' ' + pin, (err, stdout, stderr) => {
@@ -368,7 +372,7 @@ function readState(pin, callback) {
 	}
 }
 
-function removePin(pin, callback) {
+const removePin = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
 		delete ioData.controllable_pins[pin];
 		delete ioData.pinStates[pin];
@@ -393,7 +397,7 @@ function removePin(pin, callback) {
 	}
 }
 
-function renamePin(pin, name, callback) {
+const renamePin = (pin, name, callback) => {
 	if(pin in ioData.controllable_pins && (name != '' || name.length > 0)) {
 		ioData.pinNames[pin] = name;
 		emitAllClients('pinHasRenamed', {'pin': pin, 'name': name});
@@ -404,7 +408,7 @@ function renamePin(pin, name, callback) {
 	}
 }
 
-function renameBoard(name, callback) {
+const renameBoard = (name, callback) => {
 	if(name != '' || name.length > 0) {
 		ioData.boardName = name;
 		emitAllClients('boardHasRenamed', {'name': name});
@@ -415,7 +419,7 @@ function renameBoard(name, callback) {
 	}
 }
 
-function linkPins(input, output, callback) {
+const linkPins = (input, output, callback) => {
 	if(ioData.controllable_pins[input] == '0' && ioData.controllable_pins[output] != '0') {
 		ioData.links[input] = output;
 		changeState(output, 0, success => {
@@ -429,7 +433,7 @@ function linkPins(input, output, callback) {
 	}
 }
 
-function initData() {
+const initData = () => {
 	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
 	ioData = JSON.parse(data);
 	if(!ioData.boardName) {
@@ -460,10 +464,113 @@ function initData() {
 			}
 		});
 	}
+	initTasks();
 	saveData();
 }
+const newTask = (cronData, initExisting, uniqueId) => {
+	if(uniqueId == null || uniqueId == undefined || uniqueId == '') {
+		uniqueId = Math.random().toString(36).slice(2);
+	}
+	if(initExisting != true) {
+		ioData.activeTasks[uniqueId] = cronData;
+	}
+	let taskName = cronData.taskName;
+	let taskType = cronData.taskType;
+	let datetime = cronData.datetime;
+	let taskValue = cronData.taskValue;
+	let outputPin = cronData.outputPinNumber;
+	if(taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
+		let dateString = new Date(datetime + '+03:00');
+		let dateNow = new Date();
+		if(dateNow > dateString) {
+			console.log('Past date cannot be passed to tasks.');
+			delete ioData.activeTasks[uniqueId];
+			return;
+		}
+		let task = new CronJob(dateString, () => {
+			console.log('task: ' + taskName);
+			if(taskType == 'turnOn') {
+				changeState(outputPin, '1', status => {
+					if(status == false) {
+						console.log('Cannot turn on pin number ' + outputPin);
+					}
+					return;
+				});
+			} else if(taskType == 'turnOff') {
+				changeState(outputPin, '0', status => {
+					if(status == false) {
+						console.log('Cannot turn off pin number ' + outputPin);
+					}
+					return;
+				});
+			} else if(taskType == 'unlink' && Object.values(ioData.links).includes(outputPin)) {
+				unlinkPin(outputPin, status => {
+					if(status == false) {
+						console.log('Cannot unlink pin number ' + outputPin);
+					}
+					return;
+				});
+			} else if(taskType == 'linkToInput' && taskValue in ioData.controllable_pins && ioData.controllable_pins[taskValue] == '0') {
+				linkToInput(taskValue, outputPin, status => {
+					if(status == false) {
+						console.log('Cannot link input pin number ' + taskValue + ' to output pin number ' + outputPin + '.');
+					}
+					return;
+				});
+			} else if(taskType == 'setBistable') {
+				setBistable(outputPin, status => {
+					if(status == false) {
+						console.log('Cannot set pin number ' + outputPin + ' as a bistable output.');
+					}
+					return;
+				});
+			} else if(taskType == 'setMonostable' && !isNaN(taskValue) && taskValue > 0) {
+				setMonostable(outputPin, taskValue, status => {
+					if(status == false) {
+						console.log('Cannot set pin number ' + outputPin + ' as a monostable output with timeout of' + taskValue + '.');
+					}
+					return;
+				});
+			} else {
+					console.log('Unexpected task type.');
+			}
+			delete ioData.activeTasks[uniqueId];
+		});
+		task.start();
+		runningTasks[uniqueId] = task;
+		cronData.uniqueId = uniqueId;
+		emitAllClients('newTaskCreated', cronData);
+	} else {
+		console.log('One of the tasks is invalid. Removing it...');
+		delete ioData.activeTasks[uniqueId];
+		return;
+	}
+}
+const initTasks = () => {
+	for(let [uniqueId, cronData] of Object.entries(ioData.activeTasks)) {
+		newTask(cronData, true, uniqueId);
+		continue;
+	}
+}
 
-function saveData() {
+const removeTask = uniqueId => {
+	if(uniqueId in ioData.activeTasks) {
+		if(uniqueId in runningTasks) {
+			let taskInstance = runningTasks[uniqueId];
+			let stopTask = taskInstance.stop();
+			if(stopTask != false) {
+				console.log('Task Removed: ' + ioData.activeTasks[uniqueId].taskName);
+			} else {
+				console.log('Task Not Removed: ' + ioData.activeTasks[uniqueId].taskName);
+				return;
+			}
+		}
+		delete ioData.activeTasks[uniqueId];
+		emitAllClients('taskHasBeenRemoved', {'uniqueId': uniqueId});
+	}
+}
+
+const saveData = () => {
 	let jsonData = JSON.stringify(ioData, null, "\t");
 	fs.writeFileSync(path.join(__dirname, 'conf.json'), jsonData, err => {
 		if(err) {
@@ -472,11 +579,11 @@ function saveData() {
 	});
 }
 
-function emitAllClients(event, msg) {
+const emitAllClients = (event, msg) => {
 	io.emit(event, msg);
 }
 
-function checkInputPins() {
+const checkInputPins = () => {
 	inputs.forEach(key => {
 		let currentState = ioData.pinStates[key];
 		readState(key, (out) => {
@@ -498,7 +605,7 @@ function checkInputPins() {
 		});
 	});
 }
-function checkOutputPins() {
+const checkOutputPins = () => {
 	outputs.forEach(key => {
 		let currentState = ioData.pinStates[key];
 		readState(key, (out) => {
@@ -512,7 +619,7 @@ function checkOutputPins() {
 	});
 }
 
-function unlinkPin(pin, callback) {
+const unlinkPin = (pin, callback) => {
 	if(pin in ioData.links || Object.values(ioData.links).includes(pin)) {
 		if(ioData.controllable_pins[pin] != '0') {
 			for(var i in ioData.links) {
@@ -532,7 +639,7 @@ function unlinkPin(pin, callback) {
 	}
 }
 
-function setMonostable(pin, timeout, callback) {
+const setMonostable = (pin, timeout, callback) => {
 	if(!isNaN(timeout) && timeout > 0 && (ioData.controllable_pins[pin] == '1' || ioData.controllable_pins[pin] == '2')) {
 		ioData.timeouts[pin] = timeout;
 		ioData.controllable_pins[pin] = '2';
@@ -543,7 +650,7 @@ function setMonostable(pin, timeout, callback) {
 	return false;
 }
 
-function setBistable(pin, callback) {
+const setBistable = (pin, callback) => {
 	if(ioData.controllable_pins[pin] == '1' || ioData.controllable_pins[pin] == '2') {
 		ioData.timeouts[pin] = 0;
 		ioData.controllable_pins[pin] = '1';
@@ -554,7 +661,7 @@ function setBistable(pin, callback) {
 	return false;
 }
 
-function windowsblueStatusUpdater() {
+const windowsblueStatusUpdater = () => {
 	var queryString = ioData.boardName.replace(/s+/g, '') + '_';
     ioData.pinOrder.forEach((item, i) => {
 		if(item.toString() in ioData.controllable_pins) {
@@ -583,9 +690,7 @@ io.on('connection', (socket) => {
 		socket.emit('gpioData', ioData);
 	});
 
-	socket.on('stateChangeRequest', (data) => {
-		let pin = data.pin.toString();
-		let state = data.state.toString();
+	socket.on('stateChangeRequest', ({ pin, state }) => {
 		if(Object.values(ioData.links).includes(pin)) {
 			console.log('Linked output pins cannot be controlled manually.');
 			emitAllClients('stateHasChanged', {'pin': pin, 'state': ioData.pinStates[pin]});
@@ -599,8 +704,7 @@ io.on('connection', (socket) => {
 		}
 	});
 
-	socket.on('bistableRequest', (data) => {
-		let pin = data.pin.toString();
+	socket.on('bistableRequest', ({ pin }) => {
 		setBistable(pin, success => {
 			if(success != true) {
 				console.log('An error occured while setting bistable pin ' + pin + '.');
@@ -609,9 +713,7 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('linkToInput', (data) => {
-		let input = data.input.toString();
-		let output = data.output.toString();
+	socket.on('linkToInput', ({ input, output }) => {
 		linkPins(input, output, success => {
 			if(success != true) {
 				console.log('Error while linking input ' + input + ' to output ' + output + '.');
@@ -620,19 +722,16 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('unlinkPin', (data) => {
-		let pin = data.pin;
+	socket.on('unlinkPin', ({ pin }) => {
 		unlinkPin(pin, success => {
-                        if(success != true) {
-                                console.log('Error while unlinking pin ' + pin + '.');
-                                return;
-                        }
-                });
+			if(success != true) {
+				console.log('Error while unlinking pin ' + pin + '.');
+				return;
+			}
+		});
 	});
 
-	socket.on('monostableRequest', (data) => {
-		let pin = data.pin.toString();
-		let timeout = data.timeout.toString();
+	socket.on('monostableRequest', ({ pin, timeout }) => {
 		setMonostable(pin, timeout, success => {
 			if(success != true) {
 				console.log('An error occured while setting monostable pin ' + pin + ' with timeout of ' + timeout + '.');
@@ -641,9 +740,19 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('newPinRequest', (data) => {
-		let pin = data.pin.toString();
-		let dir = data.direction.toString();
+	socket.on('addNewTask', (taskData) => {
+		newTask(taskData);
+	});
+
+	socket.on('getRunningTasks', () => {
+		emitAllClients('activeTasks', ioData.runningTasks);
+	});
+
+	socket.on('removeTaskRequest', ({ uniqueId }) => {
+		removeTask(uniqueId);
+	});
+
+	socket.on('newPinRequest', ({ pin, dir }) => {
 		addPin(pin, dir, 0, success => {
 			if(success != true) {
 				console.log('An error occured while adding pin ' + pin + ' with direction number ' + dir);
@@ -652,8 +761,7 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('removePinRequest', (data) => {
-		let pin = data.pin;
+	socket.on('removePinRequest', ({ pin }) => {
 		removePin(pin, success => {
 			if(success != true) {
 				console.log('An error occured while removing pin ' + pin + '.');
@@ -662,9 +770,7 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('renamePinRequest', (data) => {
-		let pin = data.pin;
-		let name = data.name;
+	socket.on('renamePinRequest', ({ pin, name }) => {
 		renamePin(pin, name, success => {
 			if(success != true) {
 				console.log('An error occured while renaming pin ' + pin + '.');
@@ -673,8 +779,7 @@ io.on('connection', (socket) => {
 		});
 	});
 
-	socket.on('renameBoardRequest', (data) => {
-		let name = data.name;
+	socket.on('renameBoardRequest', ({ name }) => {
 		renameBoard(name, success => {
 			if(success != true) {
 				console.log('An error occured while renaming board.');
@@ -690,4 +795,10 @@ io.on('connection', (socket) => {
 
 });
 
-server.listen(serverPort || '80');
+const listen = server.listen(serverPort || '80');
+
+process.once('SIGUSR2', function () {
+	listen.close(function () {
+		process.kill(process.pid, 'SIGUSR2');
+	});
+});
