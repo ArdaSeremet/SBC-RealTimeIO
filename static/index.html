@@ -5,6 +5,7 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1.0">
 	<title>Smart Automation V2</title>
 	<link rel="stylesheet" href="css/main.css">
+	<link rel="stylesheet" href="css/index.css">
 	<script src="js/jquery.min.js"></script>
 	<script src="js/main.js"></script>
 </head>
@@ -25,12 +26,14 @@
 		</div>
 	</header>
 	<main id="page-content">
-		Homepage
+		<a href="#" onclick="handleNewBoard();" class="addNewBoard">Add a New Board</a>
+		<a href="#" onclick="handleAutomaticAddition();" class="addNewBoard">Configure Automatic Addition</a>
 	</main>
 	<footer role="main">
 		<span>This website is a property of <a href="http://progettihwsw.com">ProgettiHwSw SaS</a>. All rights reserved. Developed by <a href="https://www.ardaseremet.com.tr">Arda Seremet</a>.</span>
 	</footer>
 
 	<script src="/socket.io/socket.io.js"></script>
+	<script src="js/index.js"></script>
 </body>
 </html>

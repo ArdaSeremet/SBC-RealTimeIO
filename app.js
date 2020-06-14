@@ -386,9 +386,6 @@ const readState = (pin, callback) => {
 
 const removePin = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
-		delete ioData.controllable_pins[pin];
-		delete ioData.pinStates[pin];
-		delete ioData.pinNames[pin];
 		unlinkPin(pin, success => {
 			if(success != true) {
 				console.log('Error while unlinking pin ' + pin + '.');
@@ -401,6 +398,9 @@ const removePin = (pin, callback) => {
 		} else if (outputs.indexOf(pin) > -1) {
 			outputs.splice(outputs.indexOf(pin), 1);
 		}
+		delete ioData.controllable_pins[pin];
+		delete ioData.pinStates[pin];
+		delete ioData.pinNames[pin];
 		emitAllClients('pinHasRemoved', {'pin': pin});
 		callback(true);
 	}else{
@@ -448,6 +448,7 @@ const linkPins = (input, output, callback) => {
 const initData = () => {
 	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
 	ioData = JSON.parse(data);
+	ioData.initTime = new Date();
 	if(!ioData.boardName) {
 		ioData.boardName = Math.random().toString(36).slice(2);
 	}
@@ -494,7 +495,7 @@ const newTask = (cronData, initExisting, uniqueId) => {
 	let outputPin = cronData.outputPinNumber;
 	let repeatEveryday = cronData.repeatEveryday;
 	if(repeatEveryday != '' && repeatEveryday != null && taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
-		let dateString = new Date(datetime + '+03:00');
+		let dateString = new Date(datetime + '+02:00');
 		let dateNow = new Date();
 		if(!(dateString > 0)) {
 			console.log('Date value supplied to createTask is invalid.');

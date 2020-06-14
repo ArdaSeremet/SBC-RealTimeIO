@@ -156,12 +156,13 @@ const drawTasksTable = (socketId, tasks) => {
 	for(let [uniqueId, cronData] of Object.entries(tasks)) {
 		if(!(uniqueId in runningTasks)) {
 			runningTasks[uniqueId] = cronData;
+			let dateString = new Date(cronData.datetime);
 			tasksTbody.append(`<tr data-unique-id="${uniqueId}" data-socket-id="${socketId}">
 				<td>${cronData.taskName}</td>
 				<td>${taskTypeList[cronData.taskType]}</td>
 				<td>${boardDatas[socketId].pinNames[cronData.outputPinNumber]}</td>
 				<td>${(cronData.taskType == 'linkToInput') ? boardDatas[socketId].pinNames[cronData.taskValue] : cronData.taskValue}</td>
-				<td>${(cronData.repeatEveryday != 'on') ? cronData.datetime : `${new Date(cronData.datetime + '+03:00').getHours()}:${new Date(cronData.datetime + '+03:00').getMinutes()}`}</td>
+				<td>${(cronData.repeatEveryday != 'on') ? dateString.toLocaleString('it-IT') : `${new Date(cronData.datetime + '+02:00').getHours()}:${new Date(cronData.datetime + '+02:00').getMinutes()}`}</td>
 				<td><a href="javascript:removeTask('${socketId}', '${uniqueId}');">Remove</a></td>
 				</tr>`);
 		}
@@ -212,12 +213,13 @@ function getNewTask() {
 			if(!(uniqueId in runningTasks)) {
 				runningTasks[uniqueId] = data;
 				let tasksTbody = $("tbody[data-socket-id='"+ socketId +"'][role='taskTbody']");
+				let dateString = new Date(datetime);
 				tasksTbody.append(`<tr data-unique-id="${uniqueId}" data-socket-id="${socketId}">
 					<td>${taskName}</td>
 					<td>${taskTypeList[taskType]}</td>
 					<td>${boardDatas[socketId].pinNames[outputPinNumber]}</td>
 					<td>${(taskType == 'linkToInput') ? boardDatas[socketId].pinNames[taskValue] : taskValue}</td>
-					<td>${(repeatEveryday != 'on') ? datetime : `${new Date(datetime + '+03:00').getHours()}:${new Date(datetime + '+03:00').getMinutes()}`}</td>
+					<td>${(repeatEveryday != 'on') ? dateString.toLocaleString('it-IT') : `${new Date(datetime + '+02:00').getHours()}:${new Date(datetime + '+02:00').getMinutes()}`}</td>
 					<td><a href="javascript:removeTask('${socketId}', '${uniqueId}');">Remove</a></td>
 				</tr>`);
 			}

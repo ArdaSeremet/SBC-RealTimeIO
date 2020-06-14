@@ -3,12 +3,17 @@
 * {
   box-sizing: border-box;
 }
-
+html, body {
+  height: 100%;
+  margin: 0;
+}
 body {
   font-family: "Arial", sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 footer[role="main"] {
-  margin-top: 20px;
+  margin-top: auto;
   background-color: #F4F4F4;
   border-top: 2px solid #EBEBEB;
   width: 100%;
@@ -18,7 +23,7 @@ footer[role="main"] {
   align-items: center;
   color: #37374F;
   padding: 10px;
-  text-align: center
+  text-align: center;
 }
 footer[role="main"] a {
   text-decoration: none;
