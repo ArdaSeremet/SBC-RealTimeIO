@@ -14,13 +14,18 @@ const io = require('socket.io')(server);
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
 const validationToken = fs.readFileSync('./security.txt').toString().replace('\n', '');
-const httpAuthentication = {"username": "admin", "password": "password"};
+const httpAuthentication = {
+	"username": "admin",
+	"password": "password"
+};
 const systemFolder = path.join(__dirname, 'sys');
+const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 //const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
 //const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
 const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
+//var systemLogStream = fs.createWriteStream(systemLogsFile, { flags: 'a' });
 var ioData;
 var sessions = [];
 var inputs = [];
@@ -28,16 +33,23 @@ var outputs = [];
 var runningTasks = {};
 
 /* SOFTWARE PERM VALIDATION  */
-/*function control_mac() {
-	if(os.networkInterfaces().eth0[0].mac.slice(os.networkInterfaces().eth0[0].mac.toString().length - 5).toString() != validationToken.toString()) {
+function control_mac() {
+	if(os.networkInterfaces().wlan0[0].mac.slice(os.networkInterfaces().wlan0[0].mac.toString().length - 5).toString() != validationToken.toString()) {
 		console.error('This software is a property of Progettihwsw Sas  and can only be used on permitted machines! Aborting process...');
-		http.get('http://www.progetti-hw-sw.com/unpermitted_usage.php?mac=' + os.networkInterfaces().eth0[0].mac);
+		http.get('http://www.progettihwsw.com/unpermitted_usage.php?mac=' + os.networkInterfaces().wlan0[0].mac);
 		process.exit(1);
 	}
 }
-control_mac();
-setInterval(control_mac, 10000);
-*/
+//control_mac();
+//setInterval(control_mac, 10000);
+
+/* Redefining console.log to implement a custom logger [Currently disabled] */
+/*console.log = message => {
+	if(message.length > 0) {
+		let dateNow = new Date();
+		systemLogStream.write(dateNow.getHours() + ':' + (dateNow.getMinutes() < 10) ? '0' : '' + dateNow.getMinutes()  + ' => ' + message + '\n');
+	}
+}*/
 
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
@@ -60,58 +72,58 @@ app.get('/settings', (req, res) => {
 });
 
 app.get('/reboot', (req, res) => {
-        if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-                res.statusCode = 401;
-                res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-                res.end('Authorization is required!');
-        }
-        const base64Credentials = req.headers.authorization.split(' ')[1];
-        const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-        const [username, password] = credentials.split(':');
-        if(username != httpAuthentication.username || password != httpAuthentication.password) {
-                res.statusCode = 401;
-                res.write('Invalid Authentication Credentials!');
-        }
-        try {
-                res.send('The request has been sent to the server!');
-                execSync('systemctl reboot');
-        } catch(e) {
-                res.send('An error occured while processing your request. Try again later.');
-        }
+		if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
+				res.statusCode = 401;
+				res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
+				res.end('Authorization is required!');
+		}
+		const base64Credentials = req.headers.authorization.split(' ')[1];
+		const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+		const [username, password] = credentials.split(':');
+		if(username != httpAuthentication.username || password != httpAuthentication.password) {
+				res.statusCode = 401;
+				res.write('Invalid Authentication Credentials!');
+		}
+		try {
+				res.send('The request has been sent to the server!');
+				execSync('systemctl reboot');
+		} catch(e) {
+				res.send('An error occured while processing your request. Try again later.');
+		}
 });
 
 app.get('/static-ip', (req, res) => {
-        res.sendFile(path.join(__dirname, 'static/static-ip.html'));
+		res.sendFile(path.join(__dirname, 'static/static-ip.html'));
 });
 
 app.get('/static-ip/get', (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/json' });
-        res.write('{ "ip-address": "' + os.networkInterfaces().wlan0[0].address + '", "gateway-ip-address": "' +  execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '') + '", "dhcp": "'+ ((execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '')) == 'auto' ? 'true' : 'false') +'" }');
-        res.end();
+		res.writeHead(200, { 'Content-Type': 'text/json' });
+		res.write('{ "ip-address": "' + os.networkInterfaces().wlan0[0].address + '", "gateway-ip-address": "' +  execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '') + '", "dhcp": "'+ ((execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '')) == 'auto' ? 'true' : 'false') +'" }');
+		res.end();
 });
 
 app.get('/static-ip/set', (req, res) => {
-        if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-                res.statusCode = 401;
-                res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-                res.end('Authorization is required!');
-        }
-        const base64Credentials = req.headers.authorization.split(' ')[1];
-        const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-        const [username, password] = credentials.split(':');
-        if(username != httpAuthentication.username || password != httpAuthentication.password) {
-                res.statusCode = 401;
-                res.write('Invalid Authentication Credentials!');
-        }
-        try {
-                execSync(`nmcli connection modify 'Arda' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.addresses ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
+		if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
+				res.statusCode = 401;
+				res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
+				res.end('Authorization is required!');
+		}
+		const base64Credentials = req.headers.authorization.split(' ')[1];
+		const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+		const [username, password] = credentials.split(':');
+		if(username != httpAuthentication.username || password != httpAuthentication.password) {
+				res.statusCode = 401;
+				res.write('Invalid Authentication Credentials!');
+		}
+		try {
+				execSync(`nmcli connection modify 'Arda' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.addresses ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
 		console.log((req.query.dhcp == 'true') ? 'HE' : 'YOO');
-                res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
-                res.end();
-        } catch(e) {
-                res.write('An error occured while processing your request. Try again later.');
-                res.end();
-        }
+				res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
+				res.end();
+		} catch(e) {
+				res.write('An error occured while processing your request. Try again later.');
+				res.end();
+		}
 });
 
 app.get('/link/:input/:output', (req, res) => {
@@ -139,14 +151,14 @@ app.get('/rename-board/:name', (req, res) => {
 
 app.get('/rename/:pin/:name', (req, res) => {
 	let pin = req.params.pin.toString();
-        let name = req.params.name.toString();
-        renamePin(pin, name, success => {
-                if(success != true) {
-                        console.log('Error while renaming pin!');
-                        res.end('Failed to rename pin.');
-                }
-                res.end('Success');
-        });
+	let name = req.params.name.toString();
+	renamePin(pin, name, success => {
+		if(success != true) {
+			console.log('Error while renaming pin!');
+			res.end('Failed to rename pin.');
+		}
+		res.end('Success');
+	});
 });
 
 app.get('/unlink/:pin', (req, res) => {
@@ -229,7 +241,7 @@ app.get('/data', (req, res) => {
 		if(item in ioData.controllable_pins) {
 			let direction;
 			if(ioData.controllable_pins[item] == '1') { direction = 'Bistable Output'; } else if(ioData.controllable_pins[item] == '2') { direction = 'Monostable Output('+ ioData.timeouts[item] +'ms)'; } else { direction = 'Input'; }
-			res.write('<Pin><Name>'+ ioData.pinNames[item] +'</Name><Direction>'+ direction +'</Direction><Value>'+ ((ioData.pinStates[item] == '1') ? 'ON' : 'OFF') +'</Value></Pin>');
+			res.write('<Pin><Name>'+ ioData.pinNames[item] +'</Name><PinNumber>'+ item +'</PinNumber><Direction>'+ direction +'</Direction><Value>'+ ((ioData.pinStates[item] == '1') ? 'ON' : 'OFF') +'</Value></Pin>');
 		}
 	});
 	res.write('</Pins></Root>');
@@ -359,7 +371,7 @@ const readState = (pin, callback) => {
 			let output = stdout.toString().replace('\n', '');
 			output = output[output.length - 1];
 			if(output == '1' || output == '0') {
-				ioData.pinStates[pin] = output;
+				ioData.pinStates[pin] = output.toString();
 				callback(output);
 				return true;
 			}
@@ -378,11 +390,11 @@ const removePin = (pin, callback) => {
 		delete ioData.pinStates[pin];
 		delete ioData.pinNames[pin];
 		unlinkPin(pin, success => {
-                        if(success != true) {
-                                console.log('Error while unlinking pin ' + pin + '.');
-                                return;
-                        }
-                });
+			if(success != true) {
+				console.log('Error while unlinking pin ' + pin + '.');
+				return;
+			}
+		});
 		ioData.pinOrder.splice(ioData.pinOrder.indexOf(pin), 1);
 		if(inputs.indexOf(pin) > -1) {
 			inputs.splice(inputs.indexOf(pin), 1);
@@ -467,6 +479,7 @@ const initData = () => {
 	initTasks();
 	saveData();
 }
+
 const newTask = (cronData, initExisting, uniqueId) => {
 	if(uniqueId == null || uniqueId == undefined || uniqueId == '') {
 		uniqueId = Math.random().toString(36).slice(2);
@@ -479,24 +492,30 @@ const newTask = (cronData, initExisting, uniqueId) => {
 	let datetime = cronData.datetime;
 	let taskValue = cronData.taskValue;
 	let outputPin = cronData.outputPinNumber;
-	if(taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
+	let repeatEveryday = cronData.repeatEveryday;
+	if(repeatEveryday != '' && repeatEveryday != null && taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
 		let dateString = new Date(datetime + '+03:00');
 		let dateNow = new Date();
-		if(dateNow > dateString) {
-			console.log('Past date cannot be passed to tasks.');
-			delete ioData.activeTasks[uniqueId];
+		if(!(dateString > 0)) {
+			console.log('Date value supplied to createTask is invalid.');
+			removeTask(uniqueId);
 			return;
 		}
-		let task = new CronJob(dateString, () => {
+		if(dateNow > dateString) {
+			console.log('Past date cannot be passed to tasks.');
+			removeTask(uniqueId);
+			return;
+		}
+		let task = new CronJob((repeatEveryday == 'on') ? `${dateString.getMinutes()} ${dateString.getHours()} * * *` : dateString, () => {
 			console.log('task: ' + taskName);
-			if(taskType == 'turnOn') {
+			if(taskType == 'turnOn' && !(Object.values(ioData.links).includes(outputPin))) {
 				changeState(outputPin, '1', status => {
 					if(status == false) {
 						console.log('Cannot turn on pin number ' + outputPin);
 					}
 					return;
 				});
-			} else if(taskType == 'turnOff') {
+			} else if(taskType == 'turnOff' && !(Object.values(ioData.links).includes(outputPin))) {
 				changeState(outputPin, '0', status => {
 					if(status == false) {
 						console.log('Cannot turn off pin number ' + outputPin);
@@ -532,9 +551,11 @@ const newTask = (cronData, initExisting, uniqueId) => {
 					return;
 				});
 			} else {
-					console.log('Unexpected task type.');
+					console.log('Unexpected task type or a linked output pin.');
 			}
-			delete ioData.activeTasks[uniqueId];
+			if(repeatEveryday != 'on') {
+				removeTask(uniqueId);
+			}
 		});
 		task.start();
 		runningTasks[uniqueId] = task;
@@ -542,10 +563,11 @@ const newTask = (cronData, initExisting, uniqueId) => {
 		emitAllClients('newTaskCreated', cronData);
 	} else {
 		console.log('One of the tasks is invalid. Removing it...');
-		delete ioData.activeTasks[uniqueId];
+		removeTask(uniqueId);
 		return;
 	}
 }
+
 const initTasks = () => {
 	for(let [uniqueId, cronData] of Object.entries(ioData.activeTasks)) {
 		newTask(cronData, true, uniqueId);
@@ -605,6 +627,7 @@ const checkInputPins = () => {
 		});
 	});
 }
+
 const checkOutputPins = () => {
 	outputs.forEach(key => {
 		let currentState = ioData.pinStates[key];
@@ -663,19 +686,20 @@ const setBistable = (pin, callback) => {
 
 const windowsblueStatusUpdater = () => {
 	var queryString = ioData.boardName.replace(/s+/g, '') + '_';
-    ioData.pinOrder.forEach((item, i) => {
+	ioData.pinOrder.forEach((item, i) => {
 		if(item.toString() in ioData.controllable_pins) {
 			let name = ioData.pinNames[item.toString()];
-       		let nameSpaceless = name.replace(/\s+/g, '');
-        	let valueStr = (ioData.pinStates[item] == '1') ? 'ON' : 'OFF';
+			let nameSpaceless = name.replace(/\s+/g, '');
+			let valueStr = (ioData.pinStates[item] == '1') ? 'ON' : 'OFF';
 			queryString += nameSpaceless + 'is' + valueStr + '_';
 		}
-    });
+	});
 	queryString = queryString.slice(0, -1);
 	http.get(`http://windowsblue.it/boards.php?in=${encodeURIComponent(queryString)}`);
 }
 
 initData();
+
 setInterval(checkInputPins, 300);
 setInterval(checkOutputPins, 4000);
 setInterval(saveData, 5000);

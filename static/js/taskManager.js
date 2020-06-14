@@ -84,6 +84,11 @@ function handleNewBoard(ipAddress) {
 								<span>Date & Time</span>
 								<input required="required" type="datetime-local" name="datetime" />
 							</div>
+							<label class="form-control dir-row">
+								<input type="hidden" name="repeatEveryday" value="off">
+								<input type="checkbox" name="repeatEveryday" value="on">
+								<span>Repeat this task everyday.</span>
+							</label>
 							<div class="form-control" data-socket-id="${socket.id}" role="taskValue">
 								<input type="hidden" name="taskValue" value="0" />
 							</div>
@@ -156,7 +161,7 @@ const drawTasksTable = (socketId, tasks) => {
 				<td>${taskTypeList[cronData.taskType]}</td>
 				<td>${boardDatas[socketId].pinNames[cronData.outputPinNumber]}</td>
 				<td>${(cronData.taskType == 'linkToInput') ? boardDatas[socketId].pinNames[cronData.taskValue] : cronData.taskValue}</td>
-				<td>${cronData.datetime}</td>
+				<td>${(cronData.repeatEveryday != 'on') ? cronData.datetime : `${new Date(cronData.datetime + '+03:00').getHours()}:${new Date(cronData.datetime + '+03:00').getMinutes()}`}</td>
 				<td><a href="javascript:removeTask('${socketId}', '${uniqueId}');">Remove</a></td>
 				</tr>`);
 		}
@@ -203,13 +208,7 @@ function getRenamedBoard() {
 function getNewTask() {
 	for(let [socketId, socketInstance] of Object.entries(socketInstances)) {
 		socketInstance.on('newTaskCreated', (data) => {
-			let uniqueId = data.uniqueId;
-			let taskType = data.taskType;
-			let taskValue = data.taskValue;
-			let datetime = data.datetime;
-			let outputPinNumber = data.outputPinNumber;
-			let taskName = data.taskName;
-			console.dir(data);
+			let { uniqueId, taskType, taskValue, datetime, outputPinNumber, taskName, repeatEveryday } = data;
 			if(!(uniqueId in runningTasks)) {
 				runningTasks[uniqueId] = data;
 				let tasksTbody = $("tbody[data-socket-id='"+ socketId +"'][role='taskTbody']");
@@ -218,7 +217,7 @@ function getNewTask() {
 					<td>${taskTypeList[taskType]}</td>
 					<td>${boardDatas[socketId].pinNames[outputPinNumber]}</td>
 					<td>${(taskType == 'linkToInput') ? boardDatas[socketId].pinNames[taskValue] : taskValue}</td>
-					<td>${datetime}</td>
+					<td>${(repeatEveryday != 'on') ? datetime : `${new Date(datetime + '+03:00').getHours()}:${new Date(datetime + '+03:00').getMinutes()}`}</td>
 					<td><a href="javascript:removeTask('${socketId}', '${uniqueId}');">Remove</a></td>
 				</tr>`);
 			}
