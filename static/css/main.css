@@ -112,15 +112,15 @@ main {
   align-items: center;
   justify-content: center;
   padding: 10px;
-  margin: 10px;
+  margin: 5px;
   background-color: #607D8B;
   color: #FFF;
-  border-radius: 4px;
+  border-radius: 5px;
   text-decoration: none;
 }
 .module-head {
-  background: #ECEFF1;
-  border: 1px solid #eee;
+  background: #F4F4F4;
+  border: 1px solid #ebebeb;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -235,7 +235,6 @@ a.io-remove {
   border-radius: 0 5px 5px 0;
 }
 
-
 h1.settings-header {
   margin: 5px;
   font-size: 22px;
@@ -270,39 +269,39 @@ h1.settings-header {
 
 @media all and (max-width: 400px) {
   .pin {
-    flex-direction: column;
+	flex-direction: column;
   }
   .pin select, .pin input {
-    width: 100%;
-    flex-grow: 1;
-    flex-basis: 100%;
-    margin-left: 0;
-    margin-top: 5px;
+	width: 100%;
+	flex-grow: 1;
+	flex-basis: 100%;
+	margin-left: 0;
+	margin-top: 5px;
   }
 }
 
 /*IO Controller CSS END*/
 @media all and (max-width: 800px) {
   .menu-toggler {
-    display: flex;
+	display: flex;
   }
   .navbar {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    padding: 0;
+	flex-direction: column-reverse;
+	align-items: flex-end;
+	padding: 0;
   }
   .navbar {display: flex;justify-content: flex-end;padding: 0 10px;}
   .menu-toggler {display: flex;cursor:pointer;color: #fff;margin: 5px;padding: 5px;border: 1px solid #ebebeb;}
   .navbar ul {display: none;}
   ul.menu {
-    flex-direction: column;
-    width: 100%;
-    background-color: transparent;
+	flex-direction: column;
+	width: 100%;
+	background-color: transparent;
   }
   .navbar {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    padding: 0;
+	flex-direction: column-reverse;
+	align-items: flex-end;
+	padding: 0;
   }
   ul.menu a:hover {background-color: #f44336;}
 

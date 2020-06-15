@@ -34,11 +34,11 @@ function handleNewBoard(ipAddress) {
 						${(data.controllable_pins[item] == '1' || data.controllable_pins[item] == '2') ? `
 						<li data-gpio-number="${item}" data-socket-id="${socket.id}">
 							<span>${data.pinNames[item]}</span>
+							<input type="number" min="0" data-socket-id="${socket.id}" data-gpio-number="${item}" name="timeout" value="${(item in data.timeouts) ? data.timeouts[item] : '0'}" />
 							<select data-gpio-number="${item}" data-socket-id="${socket.id}">
 								<option data-mode="${(data.controllable_pins[item] == '2') ? 'monostable' : 'bistable'}" data-gpio-number="${item}" selected>${(data.controllable_pins[item] == '2') ? 'Monostable(Timer Mode)' : 'Bistable(ON-OFF Mode)'}</option>
 								<option data-mode="${(data.controllable_pins[item] == '2') ? 'bistable' : 'monostable'}" data-gpio-number="${item}">${(data.controllable_pins[item] == '2') ? 'Bistable(ON-OFF Mode)' : 'Monostable(Timer Mode)'}</option>
 							</select>
-							<input type="number" min="0" data-socket-id="${socket.id}" data-gpio-number="${item}" name="timeout" value="${(item in data.timeouts) ? data.timeouts[item] : '0'}" />
 						</li>
 						` : ''}
 						`.trim()).join('')}
