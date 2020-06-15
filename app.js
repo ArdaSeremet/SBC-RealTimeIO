@@ -26,6 +26,7 @@ const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
 //var systemLogStream = fs.createWriteStream(systemLogsFile, { flags: 'a' });
+var confWriteStream = fs.createWriteStream('conf.json', { flags: 'w' });
 var ioData;
 var sessions = [];
 var inputs = [];
@@ -250,7 +251,7 @@ app.get('/data', (req, res) => {
 
 app.get('/status', (req, res) => {
 	res.writeHead(200, { 'Content-Type': 'text/html' });
-	res.write(`<style>body{display: flex;flex-direction: column;align-items: center;font-family: 'Arial', sans-serif;}table{ border-collapse: collapse; }td,th {border: 1px solid #ebebeb;padding: 5px 10px;text-align: center}tbody tr:nth-child(odd){background-color: #F4F4F4 }</style>`)
+	res.write(`<style>body{display: flex;flex-direction: column;align-items: center;font-family: 'Arial', sans-serif;}table{ border-collapse: collapse; }td,th {border: 1px solid #ebebeb;padding: 5px 10px;text-align: center}tbody tr:nth-child(odd){background-color: #F4F4F4 }</style>`);
 	res.write('<table><thead><tr><th>GPIO Number</th><th>Name</th><th>Direction</th><th>Value</th></tr></thead><tbody>');
 	ioData.pinOrder.forEach((item, i) => {
 		let direction;
@@ -312,7 +313,7 @@ const addPin = (pin, mode, timeout, callback) => {
 		callback(false);
 		return;
 	}
-}
+};
 
 const changeState = (pin, state, callback) => {
 	/*if(Object.values(ioData.links).includes(pin)) {
@@ -354,7 +355,7 @@ const changeState = (pin, state, callback) => {
 		console.log('Error at changeState().');
 		callback(false);
 	}
-}
+};
 
 const readState = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
@@ -382,7 +383,7 @@ const readState = (pin, callback) => {
 		console.log('Error at readState().');
 		return false;
 	}
-}
+};
 
 const removePin = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
@@ -407,7 +408,7 @@ const removePin = (pin, callback) => {
 		console.log('Pin cannot be removed(' + pin + ').');
 		callback(false);
 	}
-}
+};
 
 const renamePin = (pin, name, callback) => {
 	if(pin in ioData.controllable_pins && (name != '' || name.length > 0)) {
@@ -418,7 +419,7 @@ const renamePin = (pin, name, callback) => {
 		console.log('Pin cannot be renamed(' + pin + ').');
 		callback(false);
 	}
-}
+};
 
 const renameBoard = (name, callback) => {
 	if(name != '' || name.length > 0) {
@@ -429,7 +430,7 @@ const renameBoard = (name, callback) => {
 		console.log('Board cannot be renamed.');
 		callback(false);
 	}
-}
+};
 
 const linkPins = (input, output, callback) => {
 	if(ioData.controllable_pins[input] == '0' && ioData.controllable_pins[output] != '0') {
@@ -443,7 +444,7 @@ const linkPins = (input, output, callback) => {
 			return;
 		});
 	}
-}
+};
 
 const initData = () => {
 	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
@@ -452,7 +453,7 @@ const initData = () => {
 	if(!ioData.boardName) {
 		ioData.boardName = Math.random().toString(36).slice(2);
 	}
-	for(let [key, value] of Object.entries(ioData.controllable_pins)) {
+	for(var [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
 			console.log("Pin number " + key + " is not valid! Removing it from JSON.");
 			delete ioData.controllable_pins[key];
@@ -461,7 +462,7 @@ const initData = () => {
 		if(!ioData.pinOrder.includes(key)) {
 			ioData.pinOrder.push(key);
 		}
-		let timeout = (value == '2') ? ioData.timeouts[key] : 0;
+		var timeout = (value == '2') ? ioData.timeouts[key] : 0;
 		addPin(key, value, timeout, (success) => {
 			if(success != true) {
 				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + timeout);
@@ -479,7 +480,7 @@ const initData = () => {
 	}
 	initTasks();
 	saveData();
-}
+};
 
 const newTask = (cronData, initExisting, uniqueId) => {
 	if(uniqueId == null || uniqueId == undefined || uniqueId == '') {
@@ -497,7 +498,7 @@ const newTask = (cronData, initExisting, uniqueId) => {
 	if(repeatEveryday != '' && repeatEveryday != null && taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
 		let dateString = new Date(datetime + '+02:00');
 		let dateNow = new Date();
-		if(!(dateString > 0)) {
+		if(dateString <= 0) {
 			console.log('Date value supplied to createTask is invalid.');
 			removeTask(uniqueId);
 			return;
@@ -531,7 +532,7 @@ const newTask = (cronData, initExisting, uniqueId) => {
 					return;
 				});
 			} else if(taskType == 'linkToInput' && taskValue in ioData.controllable_pins && ioData.controllable_pins[taskValue] == '0') {
-				linkToInput(taskValue, outputPin, status => {
+				linkPins(taskValue, outputPin, status => {
 					if(status == false) {
 						console.log('Cannot link input pin number ' + taskValue + ' to output pin number ' + outputPin + '.');
 					}
@@ -567,14 +568,14 @@ const newTask = (cronData, initExisting, uniqueId) => {
 		removeTask(uniqueId);
 		return;
 	}
-}
+};
 
 const initTasks = () => {
 	for(let [uniqueId, cronData] of Object.entries(ioData.activeTasks)) {
 		newTask(cronData, true, uniqueId);
 		continue;
 	}
-}
+};
 
 const removeTask = uniqueId => {
 	if(uniqueId in ioData.activeTasks) {
@@ -591,20 +592,16 @@ const removeTask = uniqueId => {
 		delete ioData.activeTasks[uniqueId];
 		emitAllClients('taskHasBeenRemoved', {'uniqueId': uniqueId});
 	}
-}
+};
 
 const saveData = () => {
 	let jsonData = JSON.stringify(ioData, null, "\t");
-	fs.writeFileSync(path.join(__dirname, 'conf.json'), jsonData, err => {
-		if(err) {
-			console.error(err);
-		}
-	});
-}
+	confWriteStream.write(jsonData);
+};
 
 const emitAllClients = (event, msg) => {
 	io.emit(event, msg);
-}
+};
 
 const checkInputPins = () => {
 	inputs.forEach(key => {
@@ -627,7 +624,7 @@ const checkInputPins = () => {
 			return;
 		});
 	});
-}
+};
 
 const checkOutputPins = () => {
 	outputs.forEach(key => {
@@ -641,7 +638,7 @@ const checkOutputPins = () => {
 		});
 		return;
 	});
-}
+};
 
 const unlinkPin = (pin, callback) => {
 	if(pin in ioData.links || Object.values(ioData.links).includes(pin)) {
@@ -661,7 +658,7 @@ const unlinkPin = (pin, callback) => {
 	} else {
 		callback(false);
 	}
-}
+};
 
 const setMonostable = (pin, timeout, callback) => {
 	if(!isNaN(timeout) && timeout > 0 && (ioData.controllable_pins[pin] == '1' || ioData.controllable_pins[pin] == '2')) {
@@ -672,7 +669,7 @@ const setMonostable = (pin, timeout, callback) => {
 	}
 	callback(false);
 	return false;
-}
+};
 
 const setBistable = (pin, callback) => {
 	if(ioData.controllable_pins[pin] == '1' || ioData.controllable_pins[pin] == '2') {
@@ -683,7 +680,7 @@ const setBistable = (pin, callback) => {
 	}
 	callback(false);
 	return false;
-}
+};
 
 const windowsblueStatusUpdater = () => {
 	var queryString = ioData.boardName.replace(/s+/g, '') + '_';
@@ -697,7 +694,7 @@ const windowsblueStatusUpdater = () => {
 	});
 	queryString = queryString.slice(0, -1);
 	http.get(`http://windowsblue.it/boards.php?in=${encodeURIComponent(queryString)}`);
-}
+};
 
 initData();
 
