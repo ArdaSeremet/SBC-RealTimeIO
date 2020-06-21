@@ -25,8 +25,6 @@ const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
-//var systemLogStream = fs.createWriteStream(systemLogsFile, { flags: 'a' });
-var confWriteStream = fs.createWriteStream('conf.json', { flags: 'w' });
 var ioData;
 var sessions = [];
 var inputs = [];
@@ -41,16 +39,8 @@ function control_mac() {
 		process.exit(1);
 	}
 }
-//control_mac();
-//setInterval(control_mac, 10000);
-
-/* Redefining console.log to implement a custom logger [Currently disabled] */
-/*console.log = message => {
-	if(message.length > 0) {
-		let dateNow = new Date();
-		systemLogStream.write(dateNow.getHours() + ':' + (dateNow.getMinutes() < 10) ? '0' : '' + dateNow.getMinutes()  + ' => ' + message + '\n');
-	}
-}*/
+control_mac();
+setInterval(control_mac, 10000);
 
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
@@ -118,13 +108,85 @@ app.get('/static-ip/set', (req, res) => {
 		}
 		try {
 				execSync(`nmcli connection modify 'Arda' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.addresses ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
-		console.log((req.query.dhcp == 'true') ? 'HE' : 'YOO');
 				res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
 				res.end();
 		} catch(e) {
 				res.write('An error occured while processing your request. Try again later.');
 				res.end();
 		}
+});
+
+app.get('/index.htm', (req, res) => {
+	let command = req.query.execute.parseInt();
+	if(!isNaN(command) && command > 0) {
+		if(command >= 200) {
+			let pinNumber = command - 200;
+			if(pinNumber in ioData.controllable_pins) {
+				setMonostable(pinNumber, "5000", success => {
+					if(success != true) {
+						res.write('An error occured');
+						res.end();
+						return;
+					}
+					res.write('Success');
+					res.end();
+				});
+			}
+		} else if(command >= 116 && command < 200) {
+			let pinNumber = command - 116;
+			if(pinNumber in ioData.controllable_pins) {
+				changeState(pinNumber, '0', success => {
+					if(success != true) {
+						res.write('An error occured');
+						res.end();
+						return;
+					}
+					res.write('Success');
+					res.end();
+				});
+			}
+		} else if(command >= 16 && command < 116) {
+			let pinNumber = command - 16;
+			if(pinNumber in ioData.controllable_pins) {
+				changeState(pinNumber, '1', success => {
+					if(success != true) {
+						res.write('An error occured');
+						res.end();
+						return;
+					}
+					res.write('Success');
+					res.end();
+				});
+			}
+		} else if(command >= 0 && command < 16) {
+			let pinNumber = command;
+			if(pinNumber in ioData.controllable_pins) {
+				readState(pinNumber, state => {
+					if(state != true) {
+						res.write('An error occured');
+						res.end();
+						return;
+					}
+					let changeTo = (state == '1') ? '0' : '1';
+					changeState(pinNumber, changeTo, success => {
+						if(success != true) {
+							res.write('An error occured');
+							res.end();
+							return;
+						}
+						res.write('Success');
+						res.end();
+					});
+				});
+			}
+		} else {
+			res.write('Invalid command sent!');
+			res.end();
+		}
+	} else {
+		res.write('Error');
+		res.end();
+	}
 });
 
 app.get('/link/:input/:output', (req, res) => {
@@ -203,11 +265,25 @@ app.get('/set/:pin/:state', (req, res) => {
 		res.end('Invalid request parameters!');
 	}
 });
-
+app.get('/get/:pin', (req, res) => {
+	let pin = req.params.pin.toString();
+	if(!(availablePins.includes(pin))) {
+		res.end('Invalid pin!');
+		return;
+	}
+	readState(pin, result => {
+		res.end('{"pin": "'+pin+'", "state": "'+result+'"}');
+		return;
+	});
+	return;
+});
 app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	let pin = req.params.pin.toString();
 	let dir = req.params.dir.toString();
-	let timeout = req.params.timeout.toString();
+	let timeout = '0';
+	if(req.params.timeout) {
+		timeout = req.params.timeout.toString();
+	}
 	let availableOptions = {
 		'as output': '1',
 		'monostable': '2',
@@ -272,7 +348,7 @@ const addPin = (pin, mode, timeout, callback) => {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
 		let name = (mode == '0') ? 'Input ' + pin : 'Relay ' + pin;
-		exec('gpio mode ' + pin + ' ' + modeStr + ' && gpio read ' + pin, (err, stdout, stderr) => {
+		exec(`gpio mode ${pin} ${modeStr} && gpio read ${pin}`, (err, stdout, stderr) => {
 			if(err) {
 				console.error('GPIO Pin Adding Operation Error: ' + err);
 				callback(false);
@@ -328,7 +404,7 @@ const changeState = (pin, state, callback) => {
 	}*/
 	if((state == '1' || state == '0') && ioData.controllable_pins[pin] != '0') {
 		let stateStr = (state == '1' ? 'on' : 'off');
-		exec('gpio write ' + pin + ' ' + stateStr, (err, stdout, stderr) => {
+		exec(`gpio write ${pin} ${stateStr}`, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -360,7 +436,7 @@ const changeState = (pin, state, callback) => {
 const readState = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
 		let readFilePath = path.join(systemFolder, 'read.sh');
-		exec('gpio read ' + pin, (err, stdout, stderr) => {
+		exec(`gpio read ${pin}`, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -450,8 +526,11 @@ const initData = () => {
 	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
 	ioData = JSON.parse(data);
 	ioData.initTime = new Date();
-	if(!ioData.boardName) {
+	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
+	}
+	if(!(Object.keys(ioData).includes("controllable_pins"))) {
+		ioData.controllable_pins = {};
 	}
 	for(var [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
@@ -459,10 +538,10 @@ const initData = () => {
 			delete ioData.controllable_pins[key];
 			continue;
 		}
-		if(!ioData.pinOrder.includes(key)) {
+		if(!(ioData.pinOrder.includes(key))) {
 			ioData.pinOrder.push(key);
 		}
-		var timeout = (value == '2') ? ioData.timeouts[key] : 0;
+		var timeout = (value == '2') ? ioData.timeouts[key] : "0";
 		addPin(key, value, timeout, (success) => {
 			if(success != true) {
 				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + timeout);
@@ -596,7 +675,14 @@ const removeTask = uniqueId => {
 
 const saveData = () => {
 	let jsonData = JSON.stringify(ioData, null, "\t");
-	confWriteStream.write(jsonData);
+	try {
+		let parse = JSON.parse(jsonData);
+	} catch(e) {
+		console.log('Invalid JSON object to store!');
+		console.dir(jsonData);
+		return false;
+	}
+	fs.writeFileSync('conf.json', jsonData);
 };
 
 const emitAllClients = (event, msg) => {
@@ -774,10 +860,10 @@ io.on('connection', (socket) => {
 		removeTask(uniqueId);
 	});
 
-	socket.on('newPinRequest', ({ pin, dir }) => {
-		addPin(pin, dir, 0, success => {
+	socket.on('newPinRequest', ({ pin, direction }) => {
+		addPin(pin, direction, 0, success => {
 			if(success != true) {
-				console.log('An error occured while adding pin ' + pin + ' with direction number ' + dir);
+				console.log('An error occured while adding pin ' + pin + ' with direction number ' + direction);
 				return;
 			}
 		});
