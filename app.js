@@ -18,12 +18,14 @@ const httpAuthentication = {
 	"username": "admin",
 	"password": "password"
 };
+const interfaceName = 'wlan0';
+const nmInterfaceName = 'Arda';
 const systemFolder = path.join(__dirname, 'sys');
 const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 //const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
 //const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
 const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
-const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
+const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable', 'removePin', 'renamePin', 'renameBoard'];
 
 var ioData;
 var sessions = [];
@@ -32,15 +34,16 @@ var outputs = [];
 var runningTasks = {};
 
 /* SOFTWARE PERM VALIDATION  */
-function control_mac() {
-	if(os.networkInterfaces().wlan0[0].mac.slice(os.networkInterfaces().wlan0[0].mac.toString().length - 5).toString() != validationToken.toString()) {
-		console.error('This software is a property of Progettihwsw Sas  and can only be used on permitted machines! Aborting process...');
-		http.get('http://www.progettihwsw.com/unpermitted_usage.php?mac=' + os.networkInterfaces().wlan0[0].mac);
+const controlMAC = () => {
+	let macAddress = os.networkInterfaces()[interfaceName][0].mac.toString();
+	if(macAddress.slice(macAddress.length - 5) != validationToken) {
+		console.error('This software is a property of Progettihwsw Sas and can only be used on permitted machines! Aborting process...');
+		http.get(`http://www.progetti-hw-sw.it/unpermitted_usage.php?mac=${macAddress}`);
 		process.exit(1);
 	}
 }
-control_mac();
-setInterval(control_mac, 10000);
+controlMAC();
+setInterval(controlMAC, 10000);
 
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
@@ -63,61 +66,74 @@ app.get('/settings', (req, res) => {
 });
 
 app.get('/reboot', (req, res) => {
-		if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-				res.statusCode = 401;
-				res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-				res.end('Authorization is required!');
-		}
-		const base64Credentials = req.headers.authorization.split(' ')[1];
-		const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-		const [username, password] = credentials.split(':');
-		if(username != httpAuthentication.username || password != httpAuthentication.password) {
-				res.statusCode = 401;
-				res.write('Invalid Authentication Credentials!');
-		}
-		try {
-				res.send('The request has been sent to the server!');
-				execSync('systemctl reboot');
-		} catch(e) {
-				res.send('An error occured while processing your request. Try again later.');
-		}
+	if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
+		res.statusCode = 401;
+		res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
+		res.end('Authorization is required!');
+	}
+	const base64Credentials = req.headers.authorization.split(' ')[1];
+	const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+	const [username, password] = credentials.split(':');
+	if(username != httpAuthentication.username || password != httpAuthentication.password) {
+		res.statusCode = 401;
+		res.write('Invalid Authentication Credentials!');
+	}
+	try {
+		res.send('The request has been sent to the server!');
+		execSync('systemctl reboot');
+	} catch(e) {
+		res.send('An error occured while processing your request. Try again later.');
+	}
 });
 
 app.get('/static-ip', (req, res) => {
-		res.sendFile(path.join(__dirname, 'static/static-ip.html'));
+	res.sendFile(path.join(__dirname, 'static/static-ip.html'));
 });
 
 app.get('/static-ip/get', (req, res) => {
-		res.writeHead(200, { 'Content-Type': 'text/json' });
-		res.write('{ "ip-address": "' + os.networkInterfaces().wlan0[0].address + '", "gateway-ip-address": "' +  execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '') + '", "dhcp": "'+ ((execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '')) == 'auto' ? 'true' : 'false') +'" }');
-		res.end();
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
+	let ip = os.networkInterfaces().wlan0[0].address;
+	let gateway = execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '');
+	let dhcp = execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '') == 'auto' ? 'true' : 'false';
+
+	res.write(`{
+		"ip-address": "${ip}",
+		"gateway-ip-address": "${gateway}",
+		"dhcp": "${dhcp}"
+	}`);
+	res.end();
 });
 
 app.get('/static-ip/set', (req, res) => {
-		if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-				res.statusCode = 401;
-				res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-				res.end('Authorization is required!');
-		}
-		const base64Credentials = req.headers.authorization.split(' ')[1];
-		const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-		const [username, password] = credentials.split(':');
-		if(username != httpAuthentication.username || password != httpAuthentication.password) {
-				res.statusCode = 401;
-				res.write('Invalid Authentication Credentials!');
-		}
-		try {
-				execSync(`nmcli connection modify 'Arda' connection.autoconnect yes ipv4.method ${(req.query.dhcp == 'true') ? 'auto' : 'manual'} ipv4.addresses ${req.query['ip-address']}/24 ipv4.gateway ${req.query['gateway-ip-address']} ipv4.dns 8.8.8.8,8.8.4.4`);
-				res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
-				res.end();
-		} catch(e) {
-				res.write('An error occured while processing your request. Try again later.');
-				res.end();
-		}
+	if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
+		res.statusCode = 401;
+		res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
+		res.end('Authorization is required!');
+	}
+	const base64Credentials = req.headers.authorization.split(' ')[1];
+	const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+	const [username, password] = credentials.split(':');
+	if(username != httpAuthentication.username || password != httpAuthentication.password) {
+		res.statusCode = 401;
+		res.write('Invalid Authentication Credentials!');
+	}
+	try {
+		let method = (req.query.dhcp == 'true') ? 'auto' : 'manual';
+		let gateway = req.query['gateway-ip-address'];
+		let ip = req.query['ip-address'];
+
+		execSync(`nmcli connection modify '${nmInterfaceName}' connection.autoconnect yes ipv4.method ${method} ipv4.addresses ${ip}/24 ipv4.gateway ${gateway} ipv4.dns 8.8.8.8,8.8.4.4`);
+		res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
+		res.end();
+	} catch(e) {
+		res.write('An error occured while processing your request. Try again later.');
+		res.end();
+	}
 });
 
 app.get('/index.htm', (req, res) => {
-	let command = req.query.execute.parseInt();
+	let command = parseInt(req.query.execute);
 	if(!isNaN(command) && command > 0) {
 		if(command >= 200) {
 			let pinNumber = command - 200;
@@ -194,7 +210,7 @@ app.get('/link/:input/:output', (req, res) => {
 	let output = req.params.output.toString();
 	linkPins(input, output, success => {
 		if(success != true) {
-			console.log("Error while linking pin " + input + ' to output ' + output + ' on GET request.');
+			console.log(`Error while linking pin ${input} to output ${output} on GET request.`);
 			res.end('Failed to link pins.');
 		}
 		res.end('Success!');
@@ -228,7 +244,7 @@ app.get('/unlink/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
 	unlinkPin(pin, success => {
 		if(success != true) {
-			console.log('Error while unlinking pin ' + pin + '.');
+			console.log(`Error while unlinking pin ${pin}.`);
 			res.end('Failed to unlink pin.');
 		}
 		res.end('Success!');
@@ -239,7 +255,7 @@ app.get('/remove/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
 	removePin(pin, success => {
 		if(success != true) {
-			console.log('Pin number ' + pin + ' cannot be removed!');
+			console.log(`Pin number ${pin} cannot be removed!`);
 			res.end('Fail to remove pin!');
 			return;
 		}
@@ -255,7 +271,7 @@ app.get('/set/:pin/:state', (req, res) => {
 		let stateNum = state == 'on' ? '1' : '0';
 		changeState(pin, stateNum, success => {
 			if(success != true) {
-				console.error('Error on changing state for pin ' + pin);
+				console.error(`Error on changing state for pin ${pin}.`);
 				res.end('An internal system error has occured!');
 				return;
 			}
@@ -265,18 +281,28 @@ app.get('/set/:pin/:state', (req, res) => {
 		res.end('Invalid request parameters!');
 	}
 });
+
 app.get('/get/:pin', (req, res) => {
+	res.writeHead(200, { 'Content-Type': 'text/json' });
 	let pin = req.params.pin.toString();
-	if(!(availablePins.includes(pin))) {
-		res.end('Invalid pin!');
-		return;
+	if(pin == null || pin == '' || pin == undefined) {
+		let dataOut = '[';
+		for(let pin in ioData.controllable_pins) {
+			dataOut += `{"pin": "${pin}", "state": "${ioData.pinStates[pin]}"},`;
+		}
+		dataOut = dataOut.slice(0, -1);
+		dataOut += ']';
+		res.end(dataOut);
+	} else {
+		if(!(availablePins.includes(pin))) {
+			res.end('Invalid pin!');
+			return;
+		}
+		res.end(`{"pin": "${pin}", "state": "${ioData.pinStates[pin]}"}`);
 	}
-	readState(pin, result => {
-		res.end('{"pin": "'+pin+'", "state": "'+result+'"}');
-		return;
-	});
 	return;
 });
+
 app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	let pin = req.params.pin.toString();
 	let dir = req.params.dir.toString();
@@ -306,19 +332,25 @@ app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 			res.end('System error while adding new pin!');
 			return;
 		}
-		res.end('Pin number ' + pin + ' has been added ' + dir);
+		res.end(`Pin number ${pin} has been added ${dir}.`);
 		return;
 	});
 });
 
 app.get('/data', (req, res) => {
 	res.type('application/xml');
-	res.write('<?xml version="1.0" ?><Root BoardName="'+ ioData.boardName +'"><Pins>');
+	res.write(`<?xml version="1.0" ?><Root BoardName="${ioData.boardName}"><Pins>`);
 	ioData.pinOrder.forEach((item, i) => {
 		if(item in ioData.controllable_pins) {
 			let direction;
-			if(ioData.controllable_pins[item] == '1') { direction = 'Bistable Output'; } else if(ioData.controllable_pins[item] == '2') { direction = 'Monostable Output('+ ioData.timeouts[item] +'ms)'; } else { direction = 'Input'; }
-			res.write('<Pin><Name>'+ ioData.pinNames[item] +'</Name><PinNumber>'+ item +'</PinNumber><Direction>'+ direction +'</Direction><Value>'+ ((ioData.pinStates[item] == '1') ? 'ON' : 'OFF') +'</Value></Pin>');
+			if(ioData.controllable_pins[item] == '1') {
+				direction = 'Bistable Output';
+			} else if(ioData.controllable_pins[item] == '2') {
+				direction = `Monostable Output(${ioData.timeouts[item]}ms)`;
+			} else {
+				direction = 'Input';
+			}
+			res.write(`<Pin><Name>${ioData.pinNames[item]}</Name><PinNumber>${item}</PinNumber><Direction>${direction}</Direction><Value>${(ioData.pinStates[item] == '1') ? 'ON' : 'OFF'}</Value></Pin>`);
 		}
 	});
 	res.write('</Pins></Root>');
@@ -334,7 +366,7 @@ app.get('/status', (req, res) => {
 		if(ioData.controllable_pins[item] == '1') {
 			direction = 'Bistable Output';
 		} else if(ioData.controllable_pins[item] == '2') {
-			direction = 'Monostable Output('+ ioData.timeouts[item] +'ms)';
+			direction = `Monostable Output(${ioData.timeouts[item]}ms)`;
 		} else {
 			direction = 'Input';
 		}
@@ -347,7 +379,7 @@ app.get('/status', (req, res) => {
 const addPin = (pin, mode, timeout, callback) => {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
-		let name = (mode == '0') ? 'Input ' + pin : 'Relay ' + pin;
+		let name = (mode == '0') ? `Input ${pin}` : `Relay ${pin}`;
 		exec(`gpio mode ${pin} ${modeStr} && gpio read ${pin}`, (err, stdout, stderr) => {
 			if(err) {
 				console.error('GPIO Pin Adding Operation Error: ' + err);
@@ -375,11 +407,11 @@ const addPin = (pin, mode, timeout, callback) => {
 				} else if(mode != '0' && outputs.indexOf(pin) == -1) {
 					outputs.push(pin.toString());
 				}
-				emitAllClients('pinHasAdded', {'pin': pin, 'direction': mode, 'name': name});
-				emitAllClients('stateHasChanged', {'pin': pin, 'state': pinState});
+				io.emit('pinHasAdded', {'pin': pin, 'direction': mode, 'name': name});
+				io.emit('stateHasChanged', {'pin': pin, 'state': pinState});
 				callback(true);
 			} else {
-				console.error('Error while adding pin number ' + pin + '.');
+				console.error(`Error while adding pin number ${pin}.`);
 				callback(false);
 				return;
 			}
@@ -392,16 +424,6 @@ const addPin = (pin, mode, timeout, callback) => {
 };
 
 const changeState = (pin, state, callback) => {
-	/*if(Object.values(ioData.links).includes(pin)) {
-		ioData.controllable_pins[pin] = '1';
-		for(var i in ioData.links) {
-			if(ioData.links[i] == pin) {
-				emitAllClients('stateHasChanged', {'pin': pin, 'state': ioData.pinStates[i]});
-				callback(true);
-				return;
-			}
-		}
-	}*/
 	if((state == '1' || state == '0') && ioData.controllable_pins[pin] != '0') {
 		let stateStr = (state == '1' ? 'on' : 'off');
 		exec(`gpio write ${pin} ${stateStr}`, (err, stdout, stderr) => {
@@ -424,7 +446,7 @@ const changeState = (pin, state, callback) => {
 					});
 				}, ioData.timeouts[pin]);
 			}
-			emitAllClients('stateHasChanged', {'pin': pin, 'state': state});
+			io.emit('stateHasChanged', {'pin': pin, 'state': state});
 		});
 		callback(true);
 	} else {
@@ -478,7 +500,7 @@ const removePin = (pin, callback) => {
 		delete ioData.controllable_pins[pin];
 		delete ioData.pinStates[pin];
 		delete ioData.pinNames[pin];
-		emitAllClients('pinHasRemoved', {'pin': pin});
+		io.emit('pinHasRemoved', {'pin': pin});
 		callback(true);
 	}else{
 		console.log('Pin cannot be removed(' + pin + ').');
@@ -489,7 +511,7 @@ const removePin = (pin, callback) => {
 const renamePin = (pin, name, callback) => {
 	if(pin in ioData.controllable_pins && (name != '' || name.length > 0)) {
 		ioData.pinNames[pin] = name;
-		emitAllClients('pinHasRenamed', {'pin': pin, 'name': name});
+		io.emit('pinHasRenamed', {'pin': pin, 'name': name});
 		callback(true);
 	}else{
 		console.log('Pin cannot be renamed(' + pin + ').');
@@ -500,7 +522,7 @@ const renamePin = (pin, name, callback) => {
 const renameBoard = (name, callback) => {
 	if(name != '' || name.length > 0) {
 		ioData.boardName = name;
-		emitAllClients('boardHasRenamed', {'name': name});
+		io.emit('boardHasRenamed', {'name': name});
 		callback(true);
 	}else{
 		console.log('Board cannot be renamed.');
@@ -516,7 +538,7 @@ const linkPins = (input, output, callback) => {
 				console.log('Error on linking pins.');
 				return;
 			}
-			emitAllClients('pinHasBeenLinked', {'input': input, 'output': output});
+			io.emit('pinHasBeenLinked', {'input': input, 'output': output});
 			return;
 		});
 	}
@@ -641,7 +663,7 @@ const newTask = (cronData, initExisting, uniqueId) => {
 		task.start();
 		runningTasks[uniqueId] = task;
 		cronData.uniqueId = uniqueId;
-		emitAllClients('newTaskCreated', cronData);
+		io.emit('newTaskCreated', cronData);
 	} else {
 		console.log('One of the tasks is invalid. Removing it...');
 		removeTask(uniqueId);
@@ -669,7 +691,7 @@ const removeTask = uniqueId => {
 			}
 		}
 		delete ioData.activeTasks[uniqueId];
-		emitAllClients('taskHasBeenRemoved', {'uniqueId': uniqueId});
+		io.emit('taskHasBeenRemoved', {'uniqueId': uniqueId});
 	}
 };
 
@@ -685,16 +707,12 @@ const saveData = () => {
 	fs.writeFileSync('conf.json', jsonData);
 };
 
-const emitAllClients = (event, msg) => {
-	io.emit(event, msg);
-};
-
 const checkInputPins = () => {
 	inputs.forEach(key => {
 		let currentState = ioData.pinStates[key];
 		readState(key, (out) => {
 			if(out != currentState) {
-				emitAllClients('stateHasChanged', {'pin': key, 'state': out});
+				io.emit('stateHasChanged', {'pin': key, 'state': out});
 				if(ioData.controllable_pins[key] == '0' && out == '1' && key in ioData.links) {
 					if(!(ioData.controllable_pins[ioData.links[key]] == '2' && ioData.pinStates[ioData.links[key]] == '1')) {
 						changeState(ioData.links[key], (ioData.pinStates[ioData.links[key]] == '1' ? (ioData.controllable_pins[ioData.links[key]] == '2' ? '1' : '0') : '1'), success => {
@@ -717,7 +735,7 @@ const checkOutputPins = () => {
 		let currentState = ioData.pinStates[key];
 		readState(key, (out) => {
 			if(out != currentState) {
-				emitAllClients('stateHasChanged', {'pin': key, 'state': out});
+				io.emit('stateHasChanged', {'pin': key, 'state': out});
 				return;
 			}
 			return;
@@ -732,13 +750,13 @@ const unlinkPin = (pin, callback) => {
 			for(var i in ioData.links) {
 				if(ioData.links[i] == pin) {
 					delete ioData.links[i];
-					emitAllClients('pinHasBeenUnlinked', {'input': i});
+					io.emit('pinHasBeenUnlinked', {'input': i});
 					callback(true);
 				}
 			}
 		} else {
 			delete ioData.links[pin];
-			emitAllClients('pinHasBeenUnlinked', {'input': pin});
+			io.emit('pinHasBeenUnlinked', {'input': pin});
 			callback(true);
 		}
 	} else {
@@ -801,7 +819,7 @@ io.on('connection', (socket) => {
 	socket.on('stateChangeRequest', ({ pin, state }) => {
 		if(Object.values(ioData.links).includes(pin)) {
 			console.log('Linked output pins cannot be controlled manually.');
-			emitAllClients('stateHasChanged', {'pin': pin, 'state': ioData.pinStates[pin]});
+			io.emit('stateHasChanged', {'pin': pin, 'state': ioData.pinStates[pin]});
 		} else {
 			changeState(pin, state, success => {
 				if(success != true) { 
@@ -853,7 +871,7 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('getRunningTasks', () => {
-		emitAllClients('activeTasks', ioData.runningTasks);
+		io.emit('activeTasks', ioData.runningTasks);
 	});
 
 	socket.on('removeTaskRequest', ({ uniqueId }) => {
