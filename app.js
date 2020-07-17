@@ -41,7 +41,8 @@ const controlMAC = () => {
 		http.get(`http://www.progetti-hw-sw.it/unpermitted_usage.php?mac=${macAddress}`);
 		process.exit(1);
 	}
-}
+};
+
 controlMAC();
 setInterval(controlMAC, 10000);
 
@@ -545,8 +546,15 @@ const linkPins = (input, output, callback) => {
 };
 
 const initData = () => {
-	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
+	let _confPath = path.join(__dirname, 'conf.json');
+	let data = {};
+
+	if(fs.existsSync(_confPath)) {
+		data = fs.readFileSync(_confPath);
+	}
+
 	ioData = JSON.parse(data);
+	
 	ioData.initTime = new Date();
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
@@ -563,10 +571,10 @@ const initData = () => {
 		if(!(ioData.pinOrder.includes(key))) {
 			ioData.pinOrder.push(key);
 		}
-		var timeout = (value == '2') ? ioData.timeouts[key] : "0";
-		addPin(key, value, timeout, (success) => {
+		let _timeout = (value == '2') ? ioData.timeouts[key] : '0';
+		addPin(key, value, _timeout, (success) => {
 			if(success != true) {
-				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + timeout);
+				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + _timeout);
 				return;
 			}
 			if(value != '0' && Object.values(ioData.links).includes(key)) {

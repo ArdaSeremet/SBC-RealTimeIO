@@ -32,15 +32,16 @@ var outputs = [];
 var runningTasks = {};
 
 /* SOFTWARE PERM VALIDATION  */
-function control_mac() {
+const controlMAC = () => {
 	if(os.networkInterfaces().wlan0[0].mac.slice(os.networkInterfaces().wlan0[0].mac.toString().length - 5).toString() != validationToken.toString()) {
 		console.error('This software is a property of Progettihwsw Sas  and can only be used on permitted machines! Aborting process...');
 		http.get('http://www.progettihwsw.com/unpermitted_usage.php?mac=' + os.networkInterfaces().wlan0[0].mac);
 		process.exit(1);
 	}
-}
-control_mac();
-setInterval(control_mac, 10000);
+};
+
+controlMAC();
+setInterval(controlMAC, 10000);
 
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
@@ -523,8 +524,15 @@ const linkPins = (input, output, callback) => {
 };
 
 const initData = () => {
-	let data = fs.readFileSync(path.join(__dirname, 'conf.json'));
+	let _confPath = path.join(__dirname, 'conf.json');
+	let data = {};
+
+	if(fs.existsSync(_confPath)) {
+		data = fs.readFileSync(_confPath);
+	}
+
 	ioData = JSON.parse(data);
+	
 	ioData.initTime = new Date();
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
@@ -541,10 +549,10 @@ const initData = () => {
 		if(!(ioData.pinOrder.includes(key))) {
 			ioData.pinOrder.push(key);
 		}
-		var timeout = (value == '2') ? ioData.timeouts[key] : "0";
-		addPin(key, value, timeout, (success) => {
+		let _timeout = (value == '2') ? ioData.timeouts[key] : '0';
+		addPin(key, value, _timeout, (success) => {
 			if(success != true) {
-				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + timeout);
+				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + _timeout);
 				return;
 			}
 			if(value != '0' && Object.values(ioData.links).includes(key)) {
