@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -22,16 +20,33 @@ const interfaceName = 'wlan0';
 const nmInterfaceName = 'Arda';
 const systemFolder = path.join(__dirname, 'sys');
 const systemLogsFile = path.join(__dirname, 'static/logs.txt');
+const nodeName = execSync('uname -n').toString().replace('\n', '');
+
 //const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
 //const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
 const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable', 'removePin', 'renamePin', 'renameBoard'];
 
-var ioData;
-var sessions = [];
-var inputs = [];
-var outputs = [];
-var runningTasks = {};
+let ioData = {};
+let sessions = [];
+let inputs = [];
+let outputs = [];
+let runningTasks = {};
+
+const unsupportedBoard = () => {
+	console.error(`Unsupported board type (${nodeName})! Exiting...`);
+	process.exit(1);
+};
+
+if(nodeName == "NanoPi-NEO") {
+	const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
+} else if(nodeName == "orangepizero") {
+	const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30'];
+} else if(nodeName == "rockpis") {
+	const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
+} else {
+	unsupportedBoard();
+}
 
 /* SOFTWARE PERM VALIDATION  */
 const controlMAC = () => {
@@ -135,6 +150,7 @@ app.get('/static-ip/set', (req, res) => {
 
 app.get('/index.htm', (req, res) => {
 	let command = parseInt(req.query.execute);
+
 	if(!isNaN(command) && command > 0) {
 		if(command >= 200) {
 			let pinNumber = command - 200;
@@ -381,7 +397,17 @@ const addPin = (pin, mode, timeout, callback) => {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
 		let name = (mode == '0') ? `Input ${pin}` : `Relay ${pin}`;
-		exec(`gpio mode ${pin} ${modeStr} && gpio read ${pin}`, (err, stdout, stderr) => {
+		let command = '';
+
+		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+			command = `gpio mode ${pin} ${modeStr} && gpio read ${pin}`;
+		} else if(nodeName == 'rockpis') {
+			command = `bash sys/${modeStr}.sh ${pin} && bash sys/read.sh ${pin}`;
+		} else {
+			unsupportedBoard();
+		}
+
+		exec(command, (err, stdout, stderr) => {
 			if(err) {
 				console.error('GPIO Pin Adding Operation Error: ' + err);
 				callback(false);
@@ -427,7 +453,17 @@ const addPin = (pin, mode, timeout, callback) => {
 const changeState = (pin, state, callback) => {
 	if((state == '1' || state == '0') && ioData.controllable_pins[pin] != '0') {
 		let stateStr = (state == '1' ? 'on' : 'off');
-		exec(`gpio write ${pin} ${stateStr}`, (err, stdout, stderr) => {
+		let command = '';
+
+		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+			command = `gpio write ${pin} ${stateStr}`;
+		} else if(nodeName == 'rockpis') {
+			command = `bash sys/${stateStr}.sh ${pin}`;
+		} else {
+			unsupportedBoard();
+		}
+
+		exec(command, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -458,8 +494,17 @@ const changeState = (pin, state, callback) => {
 
 const readState = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
-		let readFilePath = path.join(systemFolder, 'read.sh');
-		exec(`gpio read ${pin}`, (err, stdout, stderr) => {
+		let command = '';
+
+		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+			command = `gpio read ${pin}`;
+		} else if(nodeName == 'rockpis') {
+			command = `bash sys/read.sh ${pin}`;
+		} else {
+			unsupportedBoard();
+		}
+
+		exec(command, (err, stdout, stderr) => {
 			if(err) {
 				console.error(err);
 				return false;
@@ -554,7 +599,7 @@ const initData = () => {
 	}
 
 	ioData = JSON.parse(data);
-	
+
 	ioData.initTime = new Date();
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
@@ -562,7 +607,7 @@ const initData = () => {
 	if(!(Object.keys(ioData).includes("controllable_pins"))) {
 		ioData.controllable_pins = {};
 	}
-	for(var [key, value] of Object.entries(ioData.controllable_pins)) {
+	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
 			console.log("Pin number " + key + " is not valid! Removing it from JSON.");
 			delete ioData.controllable_pins[key];
@@ -571,16 +616,18 @@ const initData = () => {
 		if(!(ioData.pinOrder.includes(key))) {
 			ioData.pinOrder.push(key);
 		}
-		let _timeout = (value == '2') ? ioData.timeouts[key] : '0';
+		const _timeout = (value == '2') ? ioData.timeouts[key] : '0';
+		const _isLinkedOutput = (value != '0') ? (Object.values(ioData.links).includes(key)) : false;
+		
 		addPin(key, value, _timeout, (success) => {
 			if(success != true) {
-				console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + _timeout);
+				// TODO: Fix Error Logging //console.log('An error while initializing pin ' + key + ' with mode number ' + value + ' and timeout ' + _timeout);
 				return;
 			}
-			if(value != '0' && Object.values(ioData.links).includes(key)) {
+			if(value != '0' && _isLinkedOutput) {
 				changeState(key, 0, success => {
 					if(success != true) {
-						console.log('Error on initData while dealing with linked output pin.');
+						// TODO: Fix Error Logging //console.log('Error on initData while dealing with linked output pin.');
 						return;
 					}
 				});
