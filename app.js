@@ -22,9 +22,6 @@ const systemFolder = path.join(__dirname, 'sys');
 const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 const nodeName = execSync('uname -n').toString().replace('\n', '');
 
-//const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70']; // For RockPiS
-//const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19']; // For NanoPiNEO-LTS
-const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30']; // For Orange Pi Zero
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable', 'removePin', 'renamePin', 'renameBoard'];
 
 let ioData = {};
@@ -155,12 +152,19 @@ app.get('/index.htm', (req, res) => {
 		if(command >= 200) {
 			let pinNumber = command - 200;
 			if(pinNumber in ioData.controllable_pins) {
-				setMonostable(pinNumber, "5000", success => {
+				changeState(pinNumber, '1', success => {
 					if(success != true) {
 						res.write('An error occured');
 						res.end();
 						return;
 					}
+					setTimeout(() => {
+						changeState(pinNumber, '0', success => {
+							if(success != true) {
+								return;
+							}
+						});
+					}, 3000);
 					res.write('Success');
 					res.end();
 				});
