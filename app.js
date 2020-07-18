@@ -45,19 +45,6 @@ if(nodeName == "NanoPi-NEO") {
 	unsupportedBoard();
 }
 
-/* SOFTWARE PERM VALIDATION  */
-const controlMAC = () => {
-	let macAddress = os.networkInterfaces()[interfaceName][0].mac.toString();
-	if(macAddress.slice(macAddress.length - 5) != validationToken) {
-		console.error('This software is a property of Progettihwsw Sas and can only be used on permitted machines! Aborting process...');
-		http.get(`http://www.progetti-hw-sw.it/unpermitted_usage.php?mac=${macAddress}`);
-		process.exit(1);
-	}
-};
-
-controlMAC();
-setInterval(controlMAC, 10000);
-
 app.use(function(req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
 	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
