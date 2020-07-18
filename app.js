@@ -71,7 +71,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/getconf', (req, res) => {
-	res.end(fs.readFileSync('./conf.json'));
+	res.end(json_encode(ioData));
 });
 
 app.get('/settings', (req, res) => {
@@ -107,8 +107,8 @@ app.get('/static-ip/get', (req, res) => {
 	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	let ip = os.networkInterfaces().wlan0[0].address;
-	let gateway = execSync("ip r | grep wlan0 | grep default | cut -d ' ' -f 3 | head -n1").toString().replace('\n', '');
-	let dhcp = execSync('nmcli c s Arda | grep "ipv4.method" | tail -c 5').toString().replace('\n', '') == 'auto' ? 'true' : 'false';
+	let gateway = execSync(`ip r | grep ${interfaceName} | grep default | cut -d ' ' -f 3 | head -n1`).toString().replace('\n', '');
+	let dhcp = execSync(`nmcli c s ${nmInterfaceName} | grep "ipv4.method" | tail -c 5`).toString().replace('\n', '') == 'auto' ? 'true' : 'false';
 
 	res.write(`{
 		"ip-address": "${ip}",
