@@ -5,7 +5,7 @@ const http = require('http');
 const path = require('path');
 const app = module.exports.app = express();
 const os = require('os');
-const CronJob = require('cron').CronJob;
+const CronJob = require('cron').CronJob; // Used for task scheduling system.
 const server = http.createServer(app);
 const serverPort = 80;
 const io = require('socket.io')(server);
@@ -16,13 +16,13 @@ const httpAuthentication = {
 	"username": "admin",
 	"password": "password"
 };
-const interfaceName = 'wlan0';
+const interfaceName = 'wlan0'; // Change these values for your connection!
 const nmInterfaceName = 'Arda';
 const systemFolder = path.join(__dirname, 'sys');
 const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 const nodeName = execSync('uname -n').toString().replace('\n', '');
 
-const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable', 'removePin', 'renamePin', 'renameBoard'];
+const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
 let ioData = {};
 let sessions = [];
@@ -35,6 +35,10 @@ const unsupportedBoard = () => {
 	process.exit(1);
 };
 
+/**
+ * TODO
+ * The nodeName technique might be changed to something more appropriate.
+ */
 if(nodeName == "NanoPi-NEO") {
 	const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
 } else if(nodeName == "orangepizero") {
@@ -46,7 +50,7 @@ if(nodeName == "NanoPi-NEO") {
 }
 
 app.use(function(req, res, next) {
-	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+	res.header("Access-Control-Allow-Origin", "*");
 	res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 	next();
 });
@@ -132,6 +136,9 @@ app.get('/static-ip/set', (req, res) => {
 	}
 });
 
+/**
+ * This function is to bring the backwards compatibility to all ProgettiHWSW.com automation boards.
+ */
 app.get('/index.htm', (req, res) => {
 	let command = parseInt(req.query.execute);
 
@@ -582,7 +589,7 @@ const linkPins = (input, output, callback) => {
 };
 
 const initData = () => {
-	let _confPath = path.join(__dirname, 'conf.json');
+	const _confPath = path.join(__dirname, 'conf.json');
 	let data = {};
 
 	if(fs.existsSync(_confPath)) {
@@ -743,7 +750,7 @@ const removeTask = uniqueId => {
 
 const saveData = () => {
 	let jsonData = JSON.stringify(ioData, null, "\t");
-	try {
+	try { // Check the validity of stringified JSON object.
 		let parse = JSON.parse(jsonData);
 	} catch(e) {
 		console.log('Invalid JSON object to store!');
