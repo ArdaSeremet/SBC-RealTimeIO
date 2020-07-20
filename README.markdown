@@ -8,12 +8,22 @@ For a long time, I was researching about a good automation platform for Linux bo
 The whole system is based on NodeJS & SocketIO technologies. The back-end & front-end codes are completely separate through the SocketIO API. When a board address is entered through the web interface, the client-side Javascript code sends a SocketIO connection request to that hostname and gathers information about that board.
 
 ## Installation
-Download the latest online bash installation script through the [releases page]([https://github.com/ArdaSeremet/SBC-RealTimeIO/releases](https://github.com/ArdaSeremet/SBC-RealTimeIO/releases)).
+Download the latest online bash installation script through the [releases page](https://github.com/ArdaSeremet/SBC-RealTimeIO/releases).
 
-    $ sudo bash GPIOController.sh
-When the installation process finishes, enter the created directory and open the app.js file with your favourite text editor. Change the nmInterfaceName & interfaceName entries with your network interface name. If you don't, the system may throw an error when you try to change the static ip address of the board.
+    $ sudo bash auto_install.sh
+This script is going to install NodeJS & other dependencies the system needs automatically. You can run it on a bare board installation.
 
-After that, you can run the app.js file to start the system. You can also create a systemd entry to run it at system boot-up as you wish.
+When the installation process finishes, the system will be up and running as a Systemd service named "realtimeio". Systemd service will be automatically started up when the server boots up.
+
+#### Systemd Commands
+##### Use sudo privileges while running these commands.
+| Command | Description |
+| -- | -- |
+| systemctl start realtimeio | Starts the system instance. |
+| systemctl stop realtimeio | Stops the system instance. |
+| systemctl status realtimeio | Shows the current status of the system. |
+| systemctl enable realtimeio | Starts the system on server bootup. |
+| systemctl disable realtimeio | Doesn't start the system on server bootup. |
 
 ## HTTP API Reference
 #### HTTP API route list
@@ -34,6 +44,6 @@ After that, you can run the app.js file to start the system. You can also create
 
 *The more detailed explanation will be added later.*
 
-### Licensing
+## Licensing
 This software is licensed as per GNU-GPL regulations. This forbids anybody to share their own closed-sourced versions.
 

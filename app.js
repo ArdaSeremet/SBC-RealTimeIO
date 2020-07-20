@@ -11,15 +11,11 @@ const serverPort = 80;
 const io = require('socket.io')(server);
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
-const validationToken = fs.readFileSync('./security.txt').toString().replace('\n', '');
 const httpAuthentication = {
 	"username": "admin",
 	"password": "password"
 };
-const interfaceName = 'wlan0'; // Change these values for your connection!
-const nmInterfaceName = 'Arda';
 const systemFolder = path.join(__dirname, 'sys');
-const systemLogsFile = path.join(__dirname, 'static/logs.txt');
 const nodeName = execSync('uname -n').toString().replace('\n', '');
 
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
@@ -87,52 +83,6 @@ app.get('/reboot', (req, res) => {
 		execSync('systemctl reboot');
 	} catch(e) {
 		res.send('An error occured while processing your request. Try again later.');
-	}
-});
-
-app.get('/static-ip', (req, res) => {
-	res.sendFile(path.join(__dirname, 'static/static-ip.html'));
-});
-
-app.get('/static-ip/get', (req, res) => {
-	res.writeHead(200, { 'Content-Type': 'text/json' });
-
-	let ip = os.networkInterfaces().wlan0[0].address;
-	let gateway = execSync(`ip r | grep ${interfaceName} | grep default | cut -d ' ' -f 3 | head -n1`).toString().replace('\n', '');
-	let dhcp = execSync(`nmcli c s ${nmInterfaceName} | grep "ipv4.method" | tail -c 5`).toString().replace('\n', '') == 'auto' ? 'true' : 'false';
-
-	res.write(`{
-		"ip-address": "${ip}",
-		"gateway-ip-address": "${gateway}",
-		"dhcp": "${dhcp}"
-	}`);
-	res.end();
-});
-
-app.get('/static-ip/set', (req, res) => {
-	if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-		res.statusCode = 401;
-		res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-		res.end('Authorization is required!');
-	}
-	const base64Credentials = req.headers.authorization.split(' ')[1];
-	const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-	const [username, password] = credentials.split(':');
-	if(username != httpAuthentication.username || password != httpAuthentication.password) {
-		res.statusCode = 401;
-		res.write('Invalid Authentication Credentials!');
-	}
-	try {
-		let method = (req.query.dhcp == 'true') ? 'auto' : 'manual';
-		let gateway = req.query['gateway-ip-address'];
-		let ip = req.query['ip-address'];
-
-		execSync(`nmcli connection modify '${nmInterfaceName}' connection.autoconnect yes ipv4.method ${method} ipv4.addresses ${ip}/24 ipv4.gateway ${gateway} ipv4.dns 8.8.8.8,8.8.4.4`);
-		res.write('IP address has been succesfully set. Please reboot the board to apply the changes.');
-		res.end();
-	} catch(e) {
-		res.write('An error occured while processing your request. Try again later.');
-		res.end();
 	}
 });
 
@@ -839,26 +789,11 @@ const setBistable = (pin, callback) => {
 	return false;
 };
 
-const windowsblueStatusUpdater = () => {
-	var queryString = ioData.boardName.replace(/s+/g, '') + '_';
-	ioData.pinOrder.forEach((item, i) => {
-		if(item.toString() in ioData.controllable_pins) {
-			let name = ioData.pinNames[item.toString()];
-			let nameSpaceless = name.replace(/\s+/g, '');
-			let valueStr = (ioData.pinStates[item] == '1') ? 'ON' : 'OFF';
-			queryString += nameSpaceless + 'is' + valueStr + '_';
-		}
-	});
-	queryString = queryString.slice(0, -1);
-	http.get(`http://windowsblue.it/boards.php?in=${encodeURIComponent(queryString)}`);
-};
-
 initData();
 
 setInterval(checkInputPins, 300);
 setInterval(checkOutputPins, 4000);
 setInterval(saveData, 5000);
-//setInterval(windowsblueStatusUpdater, 60000);
 
 /* Socket */
 
