@@ -48,11 +48,11 @@ EOF
 echo '----'
 
 sudo systemctl daemon-reload
-sudo systemctl enable gpioctrl
+sudo systemctl enable realtimeio
 echo '----'
 
 echo 'Running the server'
-sudo systemctl start gpioctrl
+sudo systemctl start realtimeio
 echo '----'
 
 echo 'Done installing the system! Have a nice day!'

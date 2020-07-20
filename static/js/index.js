@@ -43,14 +43,6 @@ function handleNewBoard(ipAddress) {
 							<span>${getCount(data.controllable_pins, 'input')}</span>
 						</section>
 						<section class="block">
-							<h4>IP Address</h4>
-							<span>${getIPAddress(ipAddress)}</span>
-						</section>
-						<section class="block">
-							<h4>System Logs</h4>
-							<span><a href="${(ipAddress != '' ? 'http://' + ipAddress : '') + '/logs.txt'}">Click Here</a></span>
-						</section>
-						<section class="block">
 							<h4>Active Task Count</h4>
 							<span>${Object.keys(data.activeTasks).length}</span>
 						</section>
@@ -75,19 +67,6 @@ function handleNewBoard(ipAddress) {
 		});
 
 	});
-}
-
-const getIPAddress = (hostname) => {
-	let result = 'Error';
-	$.ajax({
-		async: false,
-		url: (hostname != '' ? 'http://' + hostname : '') + '/static-ip/get',
-		type: "GET",
-		success: data => {
-			result = data['ip-address'];
-		}
-	});
-	return result;
 }
 
 const getCount = (obj, dir) => {
