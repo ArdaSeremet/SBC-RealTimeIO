@@ -689,6 +689,12 @@ const initData = () => {
 	if(!ioData.activeTasks) {
 		ioData.activeTasks = {};
 	}
+	if(!ioData.links) {
+		ioData.links = {};
+	}
+	if(!ioData.pinOrder) {
+		ioData.pinOrder = [];
+	}
 	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
 			console.log("Pin number " + key + " is not valid! Removing it from JSON.");
