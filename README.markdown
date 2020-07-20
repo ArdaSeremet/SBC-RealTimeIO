@@ -30,8 +30,6 @@ When the installation process finishes, the system will be up and running as a S
 | Path | Method | Description |
 |--|--|--|
 | /getconf | GET | Returns the current configuration data. |
-| /static-ip/get | GET | Returns the connection IP data. |
-| /static-ip/set | GET | Used to set new IP data. |
 | /link/*:input_num*/*:output_num* | GET | Link input pin to an output pin. |
 | /unlink/*:pin_num* | GET | Unlink an input or output pin. |
 | /rename-board/*:name* | GET | Rename the board. |

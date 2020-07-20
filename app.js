@@ -15,7 +15,6 @@ const httpAuthentication = {
 	"username": "admin",
 	"password": "password"
 };
-const systemFolder = path.join(__dirname, 'sys');
 const nodeName = execSync('uname -n').toString().replace('\n', '');
 
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
@@ -35,12 +34,18 @@ const unsupportedBoard = () => {
  * TODO
  * The nodeName technique might be changed to something more appropriate.
  */
+let availablePins = [];
+let ioPlatform = 'sysfs';
+
 if(nodeName == "NanoPi-NEO") {
-	const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
+	availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
+	ioPlatform = 'wiring';
 } else if(nodeName == "orangepizero") {
-	const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30'];
+	availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30'];
+	ioPlatform = 'wiring';
 } else if(nodeName == "rockpis") {
-	const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
+	ioPlatform = 'sysfs';
+	availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
 } else {
 	unsupportedBoard();
 }
@@ -76,13 +81,23 @@ app.get('/reboot', (req, res) => {
 	const [username, password] = credentials.split(':');
 	if(username != httpAuthentication.username || password != httpAuthentication.password) {
 		res.statusCode = 401;
-		res.write('Invalid Authentication Credentials!');
+		res.write(json_encode({
+			'status': 'error',
+			'message': 'Invalid Authentication Credentials!'
+		}));
 	}
+
 	try {
-		res.send('The request has been sent to the server!');
+		res.send(json_encode({
+			'status': 'success',
+			'message': 'The request has been sent to the server!'
+		}));
 		execSync('systemctl reboot');
 	} catch(e) {
-		res.send('An error occured while processing your request. Try again later.');
+		res.send(json_encode({
+			'status': 'error',
+			'message': 'An error occured while processing your request. Try again later.'
+		}));
 	}
 });
 
@@ -173,132 +188,246 @@ app.get('/index.htm', (req, res) => {
 app.get('/link/:input/:output', (req, res) => {
 	let input = req.params.input.toString();
 	let output = req.params.output.toString();
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	linkPins(input, output, success => {
 		if(success != true) {
-			console.log(`Error while linking pin ${input} to output ${output} on GET request.`);
-			res.end('Failed to link pins.');
+			const message = `Error while linking pin ${input} to output ${output} on GET request.`;
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end('Success!');
+		res.end(json_encode({
+			'status': 'success',
+			'message': `Successfully linked input pin ${input} to output pin ${output}.`
+		}));
 	});
 });
 
 app.get('/rename-board/:name', (req, res) => {
 	let name = req.params.name.toString();
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	renameBoard(name, success => {
 		if(success != true) {
-			console.log('Error while renaming board!');
-			res.end('Failed to rename board.');
+			const message = 'Error while renaming board!';
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end('Success');
+		res.end(json_encode({
+			'status': 'success',
+			'message': 'Successfully renamed the board!'
+		}));
 	});
 });
 
 app.get('/rename/:pin/:name', (req, res) => {
 	let pin = req.params.pin.toString();
 	let name = req.params.name.toString();
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	renamePin(pin, name, success => {
 		if(success != true) {
-			console.log('Error while renaming pin!');
-			res.end('Failed to rename pin.');
+			const message = 'Error while renaming pin!';
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end('Success');
+		res.end(json_encode({
+			'status': 'success',
+			'message': 'Successfully renamed the pin!'
+		}));
 	});
 });
 
 app.get('/unlink/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	unlinkPin(pin, success => {
 		if(success != true) {
-			console.log(`Error while unlinking pin ${pin}.`);
-			res.end('Failed to unlink pin.');
+			const message = `Error while unlinking pin ${pin}.`;
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end('Success!');
+		res.end(json_encode({
+			'status': 'success',
+			'message': 'Successfully unlinked pin!'
+		}));
 	});
 });
 
 app.get('/remove/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
+	
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	removePin(pin, success => {
 		if(success != true) {
-			console.log(`Pin number ${pin} cannot be removed!`);
-			res.end('Fail to remove pin!');
-			return;
+			const message = `Error while removing pin number ${pin}!`;
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end('Success!');
-		return;
+		res.end(json_encode({
+			'status': 'success',
+			'message': 'Successfully removed pin!'
+		}));
 	});
 });
 
 app.get('/set/:pin/:state', (req, res) => {
 	let pin = req.params.pin.toString();
 	let state = req.params.state.toString();
-	if(availablePins.includes(pin) && !(Object.values(ioData.links).includes(pin)) && ioData.controllable_pins[pin] != '0' && (state == 'on' || state == 'off')) {
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
+	if(
+		availablePins.includes(pin) &&
+		!(Object.values(ioData.links).includes(pin)) &&
+		ioData.controllable_pins[pin] != '0' &&
+		(state == 'on' || state == 'off')
+	) {
 		let stateNum = state == 'on' ? '1' : '0';
 		changeState(pin, stateNum, success => {
 			if(success != true) {
-				console.error(`Error on changing state for pin ${pin}.`);
-				res.end('An internal system error has occured!');
-				return;
+				const message = `Error on changing state of pin ${pin}.`;
+				console.error(message);
+				res.end(json_encode({
+					'status': 'error',
+					'message': message
+				}));
 			}
-			res.end('Success!');
+			res.end(json_encode({
+				'status': 'success',
+				'message': 'Successfully set the state of pin!'
+			}));
 		});
 	} else {
-		res.end('Invalid request parameters!');
+		res.end(json_encode({
+			'status': 'error',
+			'message': 'Wrong parameters sent!'
+		}));
 	}
 });
 
 app.get('/get/:pin', (req, res) => {
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 	let pin = req.params.pin.toString();
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
+	const directions = {
+		'0': 'input',
+		'1': 'bistable',
+		'2': 'monostable'
+	};
+
 	if(pin == null || pin == '' || pin == undefined) {
-		let dataOut = '[';
-		for(let pin in ioData.controllable_pins) {
-			dataOut += `{"pin": "${pin}", "state": "${ioData.pinStates[pin]}"},`;
+		let pinDatas = [];
+		for(const pin in ioData.controllable_pins) {
+			const pinData = {
+				'pinNumber': pin,
+				'direction': directions[ioData.controllable_pins[pin]],
+				'state': ioData.pinStates[pin]
+			};
+
+			pinDatas.push(pinData);
 		}
-		dataOut = dataOut.slice(0, -1);
-		dataOut += ']';
-		res.end(dataOut);
+
+		res.end(json_encode({
+			'status': 'success',
+			'message': pinDatas
+		}));
 	} else {
-		if(!(availablePins.includes(pin))) {
-			res.end('Invalid pin!');
-			return;
+		if(
+			!(availablePins.includes(pin)) ||
+			!(pin in ioData.controllable_pins)
+		) {
+			res.end(json_encode({
+				'status': 'error',
+				'message': 'Invalid or unadded pin number!'
+			}));
 		}
-		res.end(`{"pin": "${pin}", "state": "${ioData.pinStates[pin]}"}`);
+
+		const pinData = {
+			'pinNumber': pin,
+			'direction': directions[ioData.controllable_pins[pin]],
+			'state': ioData.pinStates[pin]
+		};
+		res.end(json_encode({
+			'status': 'success',
+			'message': pinData
+		}));
 	}
-	return;
 });
 
 app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	let pin = req.params.pin.toString();
 	let dir = req.params.dir.toString();
 	let timeout = '0';
+
+	res.writeHead(200, { 'Content-Type': 'text/json' });
+
 	if(req.params.timeout) {
 		timeout = req.params.timeout.toString();
 	}
+
 	let availableOptions = {
-		'as output': '1',
+		'output': '1',
 		'monostable': '2',
 		'bistable': '1',
-		'as input': '0'
+		'input': '0'
 	};
+
 	if(!(dir in availableOptions) || !(availablePins.includes(pin))) {
-		console.log('Invalid parameters sent to /add/');
-		res.end('Invalid request parameters sent!');
-		return;
+		const message = `Invalid parameters sent!`;
+		console.log(message);
+		res.end(json_encode({
+			'status': 'error',
+			'message': message
+		}));
 	}
+
 	let mode = availableOptions[dir];
-	if(mode == '2' && (!timeout || isNaN(timeout) || timeout < 1)) {
-		res.end('Fail: Monostable mode has requested but no timeout has sent!');
-		return;
+	if(mode == '2' && (!timeout || isNaN(timeout) || timeout <= 0)) {
+		const message = 'Monostable mode has requested but no timeout has sent!';
+		console.log(message);
+		res.end(json_encode({
+			'status': 'error',
+			'message': message
+		}));
 	}
+
 	addPin(pin, mode, (mode == '2' ? timeout : 0), success => {
 		if(success != true) {
-			console.log('System error while adding new pin');
-			res.end('System error while adding new pin!');
-			return;
+			const message = 'Error while adding new pin!';
+			console.log(message);
+			res.end(json_encode({
+				'status': 'error',
+				'message': message
+			}));
 		}
-		res.end(`Pin number ${pin} has been added ${dir}.`);
-		return;
+
+		res.end(json_encode({
+			'status': 'success',
+			'message': `Pin number ${pin} has been added as ${dir}.`
+		}));
 	});
 });
 
@@ -347,9 +476,9 @@ const addPin = (pin, mode, timeout, callback) => {
 		let name = (mode == '0') ? `Input ${pin}` : `Relay ${pin}`;
 		let command = '';
 
-		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+		if(ioPlatform == 'wiring') {
 			command = `gpio mode ${pin} ${modeStr} && gpio read ${pin}`;
-		} else if(nodeName == 'rockpis') {
+		} else if(ioPlatform == 'sysfs') {
 			command = `bash sys/${modeStr}.sh ${pin} && bash sys/read.sh ${pin}`;
 		} else {
 			unsupportedBoard();
@@ -403,9 +532,9 @@ const changeState = (pin, state, callback) => {
 		let stateStr = (state == '1' ? 'on' : 'off');
 		let command = '';
 
-		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+		if(ioPlatform == 'wiring') {
 			command = `gpio write ${pin} ${stateStr}`;
-		} else if(nodeName == 'rockpis') {
+		} else if(ioPlatform == 'sysfs') {
 			command = `bash sys/${stateStr}.sh ${pin}`;
 		} else {
 			unsupportedBoard();
@@ -444,9 +573,9 @@ const readState = (pin, callback) => {
 	if(pin in ioData.controllable_pins) {
 		let command = '';
 
-		if(nodeName == 'NanoPi-NEO' || nodeName == 'orangepizero') {
+		if(ioPlatform == 'wiring') {
 			command = `gpio read ${pin}`;
-		} else if(nodeName == 'rockpis') {
+		} else if(ioPlatform == 'sysfs') {
 			command = `bash sys/read.sh ${pin}`;
 		} else {
 			unsupportedBoard();
@@ -544,16 +673,36 @@ const initData = () => {
 
 	if(fs.existsSync(_confPath)) {
 		data = fs.readFileSync(_confPath);
+		try {
+			ioData = JSON.parse(data);
+		} catch(e) {
+			ioData = {};
+		}
+	} else {
+		ioData = {};
 	}
-
-	ioData = JSON.parse(data);
 
 	ioData.initTime = new Date();
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
 	}
-	if(!(Object.keys(ioData).includes("controllable_pins"))) {
+	if(!ioData.controllable_pins) {
 		ioData.controllable_pins = {};
+	}
+	if(!ioData.activeTasks) {
+		ioData.activeTasks = {};
+	}
+	if(!ioData.links) {
+		ioData.links = {};
+	}
+	if(!ioData.pinOrder) {
+		ioData.pinOrder = [];
+	}
+	if(!ioData.pinStates) {
+		ioData.pinStates = {};
+	}
+	if(!ioData.pinNames) {
+		ioData.pinNames = {};
 	}
 	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
