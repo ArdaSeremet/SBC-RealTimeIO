@@ -699,7 +699,7 @@ const initData = () => {
 		ioData.pinOrder = [];
 	}
 	if(!ioData.pinStates) {
-		ioData.pinOrder = {};
+		ioData.pinStates = {};
 	}
 	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
