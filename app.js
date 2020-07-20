@@ -670,9 +670,14 @@ const initData = () => {
 
 	if(fs.existsSync(_confPath)) {
 		data = fs.readFileSync(_confPath);
+		try {
+			ioData = JSON.parse(data);
+		} catch(e) {
+			ioData = {};
+		}
+	} else {
+		ioData = {};
 	}
-
-	ioData = JSON.parse(data);
 
 	ioData.initTime = new Date();
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
