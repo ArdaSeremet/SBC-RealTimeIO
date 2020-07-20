@@ -34,15 +34,18 @@ const unsupportedBoard = () => {
  * TODO
  * The nodeName technique might be changed to something more appropriate.
  */
+let availablePins = [];
+let ioPlatform = 'sysfs';
+
 if(nodeName == "NanoPi-NEO") {
-	const availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
-	const ioPlatform = 'wiring';
+	availablePins = ['1','2','3','4','5','6','7','8','9','10','12','13','14','15','16','17','18','19'];
+	ioPlatform = 'wiring';
 } else if(nodeName == "orangepizero") {
-	const availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30'];
-	const ioPlatform = 'wiring';
+	availablePins = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','30'];
+	ioPlatform = 'wiring';
 } else if(nodeName == "rockpis") {
-	const ioPlatform = 'sysfs';
-	const availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
+	ioPlatform = 'sysfs';
+	availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
 } else {
 	unsupportedBoard();
 }
