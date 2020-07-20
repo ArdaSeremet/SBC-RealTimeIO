@@ -686,7 +686,7 @@ const initData = () => {
 	if(!ioData.boardName || ioData.boardName == '' || ioData.boardName == null) {
 		ioData.boardName = Math.random().toString(36).slice(2);
 	}
-	if(!(Object.keys(ioData).includes("controllable_pins"))) {
+	if(!ioData.controllable_pins) {
 		ioData.controllable_pins = {};
 	}
 	if(!ioData.activeTasks) {
