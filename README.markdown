@@ -1,6 +1,13 @@
 # GPIO Management System
 > This software brings the home/industrial automation experience to Linux SBCs easily. Originally developed for Rock Pi S & NanoPi-NEO & OrangePi-Zero boards.
 
+## Originally supported boards
+- OrangePi Zero [WiringOP supported]
+- Raspberry Pi [Untested] [Sysfs supported]
+- NanoPi-NEO [WiringNP supported]
+- Rock Pi S [Sysfs supported]
+#### Adding a new board is as easy as putting 3 lines of code in app.js file!
+
 ## What does it do?
 For a long time, I was researching about a good automation platform for Linux boards. I couldn't find one, but I built one. System exposes a web interface which is very intuitive through a default port of 80. Multiple board instances can be controlled through *one web interface* by IP addresses. This system is also intended to be compatible with other automation softwares such as [Home Assistant](https://github.com/home-assistant/core); for this purpose, I also exposed an HTTP API -*documentation is TBA*- interface.
 
