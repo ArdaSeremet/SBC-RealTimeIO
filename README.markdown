@@ -15,6 +15,9 @@ This script is going to install NodeJS & other dependencies the system needs aut
 
 When the installation process finishes, the system will be up and running as a Systemd service named "realtimeio". Systemd service will be automatically started up when the server boots up.
 
+## Buy Me A Coffee
+If you like what I made, you can contribute to me by buying a coffee for me from [this link](https://www.buymeacoffee.com/ArdaSeremet)
+
 #### Systemd Commands
 ##### Use sudo privileges while running these commands.
 | Command | Description |
