@@ -16,7 +16,7 @@ const httpAuthentication = {
 	"password": "password"
 };
 const nodeName = execSync('uname -n').toString().replace('\n', '');
-
+const sysPath = path.join(__dirname, 'sys');
 const availableTaskTypes = ['turnOn', 'turnOff', 'unlink', 'linkToInput', 'setMonostable', 'setBistable'];
 
 let ioData = {};
@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/getconf', (req, res) => {
-	res.end(json_encode(ioData));
+	res.json(ioData);
 });
 
 app.get('/settings', (req, res) => {
@@ -116,8 +116,10 @@ app.get('/index.htm', (req, res) => {
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '1', success => {
 					if(success != true) {
-						res.write('An error occured');
-						res.end();
+						res.json({
+							'status': 'error',
+							'message': 'Couldn\'t turn on the pin as monostable!'
+						});
 						return;
 					}
 					setTimeout(() => {
@@ -127,8 +129,15 @@ app.get('/index.htm', (req, res) => {
 							}
 						});
 					}, 3000);
-					res.write('Success');
-					res.end();
+					res.json({
+						'status': 'success',
+						'message': 'Successfully turned on the pin as monostable!'
+					});
+				});
+			} else {
+				res.json({
+					'status': 'error',
+					'message': 'Invalid pin number, please add it first!'
 				});
 			}
 		} else if(command >= 116 && command < 200) {
@@ -136,12 +145,21 @@ app.get('/index.htm', (req, res) => {
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '0', success => {
 					if(success != true) {
-						res.write('An error occured');
-						res.end();
+						res.json({
+							'status': 'error',
+							'message': 'Couldn\'t turn off the pin!'
+						});
 						return;
 					}
-					res.write('Success');
-					res.end();
+					res.json({
+						'status': 'success',
+						'message': 'Successfully turned off the pin!'
+					});
+				});
+			} else {
+				res.json({
+					'status': 'error',
+					'message': 'Invalid pin number, please add it first!'
 				});
 			}
 		} else if(command >= 16 && command < 116) {
@@ -149,50 +167,65 @@ app.get('/index.htm', (req, res) => {
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '1', success => {
 					if(success != true) {
-						res.write('An error occured');
-						res.end();
+						res.json({
+							'status': 'error',
+							'message': 'Couldn\'t turn on the pin!'
+						});
 						return;
 					}
-					res.write('Success');
-					res.end();
+					res.json({
+						'status': 'success',
+						'message': 'Successfully turned on the pin!'
+					});
+				});
+			} else {
+				res.json({
+					'status': 'error',
+					'message': 'Invalid pin number, please add it first!'
 				});
 			}
 		} else if(command >= 0 && command < 16) {
 			let pinNumber = command;
 			if(pinNumber in ioData.controllable_pins) {
 				readState(pinNumber, state => {
-					if(state != true) {
-						res.write('An error occured');
-						res.end();
-						return;
-					}
 					let changeTo = (state == '1') ? '0' : '1';
 					changeState(pinNumber, changeTo, success => {
 						if(success != true) {
-							res.write('An error occured');
-							res.end();
+							res.json({
+								'status': 'error',
+								'message': 'Error while toggling the pin!'
+							});
 							return;
 						}
-						res.write('Success');
-						res.end();
+						res.json({
+							'status': 'success',
+							'message': 'Successfully toggled the pin!'
+						});
 					});
+				});
+			} else {
+				res.json({
+					'status': 'error',
+					'message': 'Invalid pin number, please add it first!'
 				});
 			}
 		} else {
-			res.write('Invalid command sent!');
-			res.end();
+			res.json({
+				'status': 'error',
+				'message': 'Invalid parameter sent!'
+			});
 		}
 	} else {
-		res.write('Error');
-		res.end();
+		res.json({
+			'status': 'error',
+			'message': 'Invalid command type sent!'
+		});
 	}
 });
 
 app.get('/link/:input/:output', (req, res) => {
 	let input = req.params.input.toString();
 	let output = req.params.output.toString();
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	linkPins(input, output, success => {
 		if(success != true) {
@@ -212,8 +245,6 @@ app.get('/link/:input/:output', (req, res) => {
 
 app.get('/rename-board/:name', (req, res) => {
 	let name = req.params.name.toString();
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	renameBoard(name, success => {
 		if(success != true) {
@@ -235,8 +266,6 @@ app.get('/rename/:pin/:name', (req, res) => {
 	let pin = req.params.pin.toString();
 	let name = req.params.name.toString();
 
-	res.writeHead(200, { 'Content-Type': 'text/json' });
-
 	renamePin(pin, name, success => {
 		if(success != true) {
 			const message = 'Error while renaming pin!';
@@ -255,8 +284,6 @@ app.get('/rename/:pin/:name', (req, res) => {
 
 app.get('/unlink/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	unlinkPin(pin, success => {
 		if(success != true) {
@@ -277,8 +304,6 @@ app.get('/unlink/:pin', (req, res) => {
 app.get('/remove/:pin', (req, res) => {
 	let pin = req.params.pin.toString();
 	
-	res.writeHead(200, { 'Content-Type': 'text/json' });
-
 	removePin(pin, success => {
 		if(success != true) {
 			const message = `Error while removing pin number ${pin}!`;
@@ -298,8 +323,6 @@ app.get('/remove/:pin', (req, res) => {
 app.get('/set/:pin/:state', (req, res) => {
 	let pin = req.params.pin.toString();
 	let state = req.params.state.toString();
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	if(
 		availablePins.includes(pin) &&
@@ -330,10 +353,8 @@ app.get('/set/:pin/:state', (req, res) => {
 	}
 });
 
-app.get('/get/:pin', (req, res) => {
-	let pin = req.params.pin.toString();
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
+app.get('/get/:pin?', (req, res) => {
+	let pin = req.params.pin;
 
 	const directions = {
 		'0': 'input',
@@ -343,7 +364,7 @@ app.get('/get/:pin', (req, res) => {
 
 	if(pin == null || pin == '' || pin == undefined) {
 		let pinDatas = [];
-		for(const pin in ioData.controllable_pins) {
+		for(let pin in ioData.controllable_pins) {
 			const pinData = {
 				'pinNumber': pin,
 				'direction': directions[ioData.controllable_pins[pin]],
@@ -384,8 +405,6 @@ app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	let pin = req.params.pin.toString();
 	let dir = req.params.dir.toString();
 	let timeout = '0';
-
-	res.writeHead(200, { 'Content-Type': 'text/json' });
 
 	if(req.params.timeout) {
 		timeout = req.params.timeout.toString();
@@ -482,7 +501,7 @@ const addPin = (pin, mode, timeout, callback) => {
 		if(ioPlatform == 'wiring') {
 			command = `gpio mode ${pin} ${modeStr} && gpio read ${pin}`;
 		} else if(ioPlatform == 'sysfs') {
-			command = `bash sys/${modeStr}.sh ${pin} && bash sys/read.sh ${pin}`;
+			command = `bash ${path.join(sysPath, `${modeStr}.sh`)} ${pin} && bash ${path.join(sysPath, 'read.sh')} ${pin}`;
 		} else {
 			unsupportedBoard();
 		}
@@ -538,7 +557,7 @@ const changeState = (pin, state, callback) => {
 		if(ioPlatform == 'wiring') {
 			command = `gpio write ${pin} ${stateStr}`;
 		} else if(ioPlatform == 'sysfs') {
-			command = `bash sys/${stateStr}.sh ${pin}`;
+			command = `bash ${path.join(sysPath, `${stateStr}.sh`)} ${pin}`;
 		} else {
 			unsupportedBoard();
 		}
@@ -579,7 +598,7 @@ const readState = (pin, callback) => {
 		if(ioPlatform == 'wiring') {
 			command = `gpio read ${pin}`;
 		} else if(ioPlatform == 'sysfs') {
-			command = `bash sys/read.sh ${pin}`;
+			command = `bash ${path.join(sysPath, 'read.sh')} ${pin}`;
 		} else {
 			unsupportedBoard();
 		}
@@ -707,6 +726,10 @@ const initData = () => {
 	if(!ioData.pinNames) {
 		ioData.pinNames = {};
 	}
+	if(!ioData.timeouts) {
+		ioData.timeouts = {};
+	}
+
 	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
 		if(!availablePins.includes(key)) {
 			console.log("Pin number " + key + " is not valid! Removing it from JSON.");
@@ -734,6 +757,7 @@ const initData = () => {
 			}
 		});
 	}
+
 	initTasks();
 	saveData();
 };
@@ -745,25 +769,30 @@ const newTask = (cronData, initExisting, uniqueId) => {
 	if(initExisting != true) {
 		ioData.activeTasks[uniqueId] = cronData;
 	}
+
 	let taskName = cronData.taskName;
 	let taskType = cronData.taskType;
 	let datetime = cronData.datetime;
 	let taskValue = cronData.taskValue;
 	let outputPin = cronData.outputPinNumber;
 	let repeatEveryday = cronData.repeatEveryday;
+
 	if(repeatEveryday != '' && repeatEveryday != null && taskName != '' && taskName != null && taskType != '' && availableTaskTypes.includes(taskType) && datetime != '' && outputPin != '' && outputPin in ioData.controllable_pins && ioData.controllable_pins[outputPin] != '0') {
 		let dateString = new Date(datetime + '+02:00');
 		let dateNow = new Date();
+
 		if(dateString <= 0) {
 			console.log('Date value supplied to createTask is invalid.');
 			removeTask(uniqueId);
 			return;
 		}
+
 		if(dateNow > dateString) {
 			console.log('Past date cannot be passed to tasks.');
 			removeTask(uniqueId);
 			return;
 		}
+
 		let task = new CronJob((repeatEveryday == 'on') ? `${dateString.getMinutes()} ${dateString.getHours()} * * *` : dateString, () => {
 			console.log('task: ' + taskName);
 			if(taskType == 'turnOn' && !(Object.values(ioData.links).includes(outputPin))) {
