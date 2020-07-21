@@ -46,6 +46,9 @@ if(nodeName == "NanoPi-NEO") {
 } else if(nodeName == "rockpis") {
 	ioPlatform = 'sysfs';
 	availablePins = ['11','12','68','15','16','17','55','54','56','65','64','69','74','73','71','57','76','72','77','78','79','80','75','70'];
+} else if(nodeName == "raspberrypi") {
+	ioPlatform = 'sysfs';
+	availablePins = ['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27'];
 } else {
 	unsupportedBoard();
 }
