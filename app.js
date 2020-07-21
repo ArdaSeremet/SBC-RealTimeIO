@@ -74,30 +74,33 @@ app.get('/reboot', (req, res) => {
 	if(!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
 		res.statusCode = 401;
 		res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
-		res.end('Authorization is required!');
+		res.json({
+			'status': 'error',
+			'message': 'Authorization is required!'
+		});
 	}
 	const base64Credentials = req.headers.authorization.split(' ')[1];
 	const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
 	const [username, password] = credentials.split(':');
 	if(username != httpAuthentication.username || password != httpAuthentication.password) {
 		res.statusCode = 401;
-		res.write(json_encode({
+		res.json({
 			'status': 'error',
 			'message': 'Invalid Authentication Credentials!'
-		}));
+		});
 	}
 
 	try {
-		res.send(json_encode({
+		res.json({
 			'status': 'success',
 			'message': 'The request has been sent to the server!'
-		}));
+		});
 		execSync('systemctl reboot');
 	} catch(e) {
-		res.send(json_encode({
+		res.json({
 			'status': 'error',
 			'message': 'An error occured while processing your request. Try again later.'
-		}));
+		});
 	}
 });
 
@@ -195,15 +198,15 @@ app.get('/link/:input/:output', (req, res) => {
 		if(success != true) {
 			const message = `Error while linking pin ${input} to output ${output} on GET request.`;
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': `Successfully linked input pin ${input} to output pin ${output}.`
-		}));
+		});
 	});
 });
 
@@ -216,15 +219,15 @@ app.get('/rename-board/:name', (req, res) => {
 		if(success != true) {
 			const message = 'Error while renaming board!';
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': 'Successfully renamed the board!'
-		}));
+		});
 	});
 });
 
@@ -238,15 +241,15 @@ app.get('/rename/:pin/:name', (req, res) => {
 		if(success != true) {
 			const message = 'Error while renaming pin!';
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': 'Successfully renamed the pin!'
-		}));
+		});
 	});
 });
 
@@ -259,15 +262,15 @@ app.get('/unlink/:pin', (req, res) => {
 		if(success != true) {
 			const message = `Error while unlinking pin ${pin}.`;
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': 'Successfully unlinked pin!'
-		}));
+		});
 	});
 });
 
@@ -280,15 +283,15 @@ app.get('/remove/:pin', (req, res) => {
 		if(success != true) {
 			const message = `Error while removing pin number ${pin}!`;
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': 'Successfully removed pin!'
-		}));
+		});
 	});
 });
 
@@ -309,21 +312,21 @@ app.get('/set/:pin/:state', (req, res) => {
 			if(success != true) {
 				const message = `Error on changing state of pin ${pin}.`;
 				console.error(message);
-				res.end(json_encode({
+				res.json({
 					'status': 'error',
 					'message': message
-				}));
+				});
 			}
-			res.end(json_encode({
+			res.json({
 				'status': 'success',
 				'message': 'Successfully set the state of pin!'
-			}));
+			});
 		});
 	} else {
-		res.end(json_encode({
+		res.json({
 			'status': 'error',
 			'message': 'Wrong parameters sent!'
-		}));
+		});
 	}
 });
 
@@ -350,19 +353,19 @@ app.get('/get/:pin', (req, res) => {
 			pinDatas.push(pinData);
 		}
 
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': pinDatas
-		}));
+		});
 	} else {
 		if(
 			!(availablePins.includes(pin)) ||
 			!(pin in ioData.controllable_pins)
 		) {
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': 'Invalid or unadded pin number!'
-			}));
+			});
 		}
 
 		const pinData = {
@@ -370,10 +373,10 @@ app.get('/get/:pin', (req, res) => {
 			'direction': directions[ioData.controllable_pins[pin]],
 			'state': ioData.pinStates[pin]
 		};
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': pinData
-		}));
+		});
 	}
 });
 
@@ -398,36 +401,36 @@ app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	if(!(dir in availableOptions) || !(availablePins.includes(pin))) {
 		const message = `Invalid parameters sent!`;
 		console.log(message);
-		res.end(json_encode({
+		res.json({
 			'status': 'error',
 			'message': message
-		}));
+		});
 	}
 
 	let mode = availableOptions[dir];
 	if(mode == '2' && (!timeout || isNaN(timeout) || timeout <= 0)) {
 		const message = 'Monostable mode has requested but no timeout has sent!';
 		console.log(message);
-		res.end(json_encode({
+		res.json({
 			'status': 'error',
 			'message': message
-		}));
+		});
 	}
 
 	addPin(pin, mode, (mode == '2' ? timeout : 0), success => {
 		if(success != true) {
 			const message = 'Error while adding new pin!';
 			console.log(message);
-			res.end(json_encode({
+			res.json({
 				'status': 'error',
 				'message': message
-			}));
+			});
 		}
 
-		res.end(json_encode({
+		res.json({
 			'status': 'success',
 			'message': `Pin number ${pin} has been added as ${dir}.`
-		}));
+		});
 	});
 });
 
