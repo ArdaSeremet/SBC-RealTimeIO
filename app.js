@@ -116,6 +116,7 @@ app.get('/index.htm', (req, res) => {
 	if(!isNaN(command) && command > 0) {
 		if(command >= 200) {
 			let pinNumber = command - 200;
+			addPinIfNotExists(pinNumber, 'bistable');
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '1', success => {
 					if(success != true) {
@@ -145,6 +146,7 @@ app.get('/index.htm', (req, res) => {
 			}
 		} else if(command >= 116 && command < 200) {
 			let pinNumber = command - 116;
+			addPinIfNotExists(pinNumber, 'bistable');
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '0', success => {
 					if(success != true) {
@@ -167,6 +169,7 @@ app.get('/index.htm', (req, res) => {
 			}
 		} else if(command >= 16 && command < 116) {
 			let pinNumber = command - 16;
+			addPinIfNotExists(pinNumber, 'bistable');
 			if(pinNumber in ioData.controllable_pins) {
 				changeState(pinNumber, '1', success => {
 					if(success != true) {
@@ -189,6 +192,7 @@ app.get('/index.htm', (req, res) => {
 			}
 		} else if(command >= 0 && command < 16) {
 			let pinNumber = command;
+			addPinIfNotExists(pinNumber, 'bistable');
 			if(pinNumber in ioData.controllable_pins) {
 				readState(pinNumber, state => {
 					let changeTo = (state == '1') ? '0' : '1';
@@ -456,23 +460,19 @@ app.get('/add/:pin/:dir/:timeout?', (req, res) => {
 	});
 });
 
-app.get('/data', (req, res) => {
+app.get('/status.xml', (req, res) => {
 	res.type('application/xml');
-	res.write(`<?xml version="1.0" ?><Root BoardName="${ioData.boardName}"><Pins>`);
+	res.write(`<?xml version="1.0" ?><response BoardName="${ioData.boardName}">`);
 	ioData.pinOrder.forEach((item, i) => {
 		if(item in ioData.controllable_pins) {
-			let direction;
-			if(ioData.controllable_pins[item] == '1') {
-				direction = 'Bistable Output';
-			} else if(ioData.controllable_pins[item] == '2') {
-				direction = `Monostable Output(${ioData.timeouts[item]}ms)`;
+			if(ioData.controllable_pins[item] == '0') {
+				res.write(`<btn${item}>${ioData.pinStates[item] == '1' ? 'up' : 'dn'}</btn${item}>`);
 			} else {
-				direction = 'Input';
+				res.write(`<led${item}>${ioData.pinStates[item]}</led${item}>`);
 			}
-			res.write(`<Pin><Name>${ioData.pinNames[item]}</Name><PinNumber>${item}</PinNumber><Direction>${direction}</Direction><Value>${(ioData.pinStates[item] == '1') ? 'ON' : 'OFF'}</Value></Pin>`);
 		}
 	});
-	res.write('</Pins></Root>');
+	res.write('</response>');
 	res.end();
 });
 
@@ -763,6 +763,25 @@ const initData = () => {
 
 	initTasks();
 	saveData();
+};
+
+const addPinIfNotExists = (pin, direction, timeout) => {
+	if(pin in ioData.controllablePins || !availablePins.includes(pin)) { return; }
+	if(direction == 'bistable') {
+		addPin(pin, '1', '0', success => {
+			//TODO
+		});
+	} else if(direction == 'monostable' && parseInt(timeout) > 0 && !isNaN(timeout)) {
+		addPin(pin, '2', timeout, success => {
+			//TODO
+		});
+	} else if(direction == 'input') {
+		addPin(pin, '0', '0', success => {
+			//TODO
+		});
+	} else {
+		return;
+	}
 };
 
 const newTask = (cronData, initExisting, uniqueId) => {
