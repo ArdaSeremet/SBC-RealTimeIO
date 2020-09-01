@@ -495,6 +495,47 @@ app.get('/status', (req, res) => {
 	res.end();
 });
 
+app.get('/setPredefined', (req, res) => {
+	let number = req.params.number.toString();
+	let pin = req.params.pin.toString();
+
+	setPredefined(number, pin, status => {
+		let result;
+		if(status != true) {
+			result = {
+				'status': 'error',
+				'message': 'Cannot set the pin predefined.'
+			}
+			res.json(result);
+		}
+		result = {
+			'status': 'success',
+			'message': 'Successfully set the pin predefined.'
+		}
+		res.json(result);
+	});
+});
+
+app.get('/unsetPredefined', (req, res) => {
+	let number = req.params.number.toString();
+
+	unsetPredefined(number, status => {
+		let result;
+		if(status != true) {
+			result = {
+				'status': 'error',
+				'message': 'Cannot unset the predefined pin.'
+			}
+			res.json(result);
+		}
+		result = {
+			'status': 'success',
+			'message': 'Successfully unset the predefined pin.'
+		}
+		res.json(result);
+	});
+});
+
 const addPin = (pin, mode, timeout, callback) => {
 	if(availablePins.includes(pin) && (mode == '0' || mode == '1' || (mode == '2' && !isNaN(timeout) && timeout > 0))) {
 		let modeStr = (mode == '0') ? 'in' : 'out';
@@ -731,6 +772,9 @@ const initData = () => {
 	}
 	if(!ioData.timeouts) {
 		ioData.timeouts = {};
+	}
+	if(!ioData.predefined) {
+		ioData.predefined = {};
 	}
 
 	for(const [key, value] of Object.entries(ioData.controllable_pins)) {
@@ -992,6 +1036,53 @@ const setBistable = (pin, callback) => {
 	return false;
 };
 
+const setPredefined = (number, pin, callback) => {
+	if(number <= 0 || number > 8 || !(pin in ioData.controllable_pins) || ioData.controllable_pins[pin.toString()] == '0') {
+		callback(false);
+		return false;
+	}
+
+	ioData.predefined[number.toString()] = pin.toString();
+	callback(true);
+	return true;
+}
+
+const unsetPredefined = (number, callback) => {
+	if(!(number.toString() in ioData.predefined)) {
+		callback(false);
+		return false;
+	}
+
+	delete ioData.predefined[number.toString()]
+	callback(true);
+	return true;
+}
+
+const controlPredefined = (number, state, callback) => {
+	if(!(number.toString() in ioData.predefined)) {
+		callback(false);
+		return false;
+	}
+
+	actualPin = ioData.predefined[number.toString()];
+
+	if(!(actualPin in ioData.controllable_pins) || ioData.controllablePins[actualPin] == '0') {
+		unsetPredefined(number);
+		callback(false);
+		return false;
+	}
+
+	changeState(actualPin, state, status => {
+		if(status != true) {
+			callback(false);
+			return false;
+		}
+
+		callback(true);
+		return true;
+	});
+}
+
 initData();
 
 setInterval(checkInputPins, 300);
@@ -1052,6 +1143,24 @@ io.on('connection', (socket) => {
 		setMonostable(pin, timeout, success => {
 			if(success != true) {
 				console.log('An error occured while setting monostable pin ' + pin + ' with timeout of ' + timeout + '.');
+				return;
+			}
+		});
+	});
+
+	socket.on('predefinedRequest', ({ number, pin }) => {
+		setPredefined(number, pin, success => {
+			if(success != true) {
+				console.log('An error occured while setting predefined pin.');
+				return;
+			}
+		});
+	});
+
+	socket.on('unpredefinedRequest', ({ number }) => {
+		unsetPredefined(number, success => {
+			if(success != true) {
+				console.log('An error occured while unsetting predefined pin.');
 				return;
 			}
 		});
